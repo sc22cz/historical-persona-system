@@ -53,13 +53,22 @@ def extract_profile(name: str, text: str, api_key: str) -> dict:
     prompt = PROMPT_TEMPLATE.replace("{text}", text)
     
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-5",
         max_tokens=1000,
         messages=[
             {"role": "user", "content": prompt}
         ]
     )
     
-    result = json.loads(response.content[0].text)
+
+    raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    result = json.loads(raw.strip())
+
+
+
     result["name"] = name
     return result
