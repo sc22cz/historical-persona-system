@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import init_db
+from routers.figures import router as figures_router
 
 app = FastAPI(title="Historical Persona System")
 
@@ -18,3 +19,5 @@ def startup():
 @app.get("/")
 def root():
     return {"message": "Historical Persona System is running"}
+
+app.include_router(figures_router)
