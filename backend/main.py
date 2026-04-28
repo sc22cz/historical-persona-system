@@ -26,3 +26,10 @@ def root():
 app.include_router(figures_router)
 app.include_router(match_router)
 app.include_router(reverse_router)
+
+from fastapi.staticfiles import StaticFiles
+import os
+
+static_path = os.path.join(os.path.dirname(__file__), "../frontend/dist")
+if os.path.exists(static_path):
+    app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
