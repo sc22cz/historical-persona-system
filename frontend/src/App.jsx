@@ -2,7 +2,7 @@ import { useState } from "react"
 import axios from "axios"
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts"
 
-const API = "http://127.0.0.1:8000"
+const API = "https://historical-persona-system-production.up.railway.app"
 const API_KEY = "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"
 
 export default function App() {
