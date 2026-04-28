@@ -13,6 +13,9 @@ You have been given:
 Known facts:
 {raw_text}
 
+Historical context:
+This person lived in {era_context}. Consider the specific social structures, power dynamics, religious beliefs, and daily life constraints of that civilisation when making inferences. Do not apply modern psychological frameworks anachronistically.
+
 Behavioural profile (some dimensions were imputed from {similar_figure}):
 - Reaction to oppression: {d0}
 - Group dependency: {d1}
@@ -60,10 +63,20 @@ def reconstruct_history(figure_id: int, api_key: str) -> dict:
         first_key = list(imputed_from.keys())[0]
         similar_figure = imputed_from[first_key]["borrowed_from"]
 
+    if figure["era"] < -500:
+        era_context = f"ancient {abs(figure['era'])} BC, in a world of city-states, oral tradition, and divine kingship"
+    elif figure["era"] < 500:
+        era_context = f"the classical period around {abs(figure['era'])} BC/AD, with emerging empires and philosophical traditions"
+    elif figure["era"] < 1500:
+        era_context = f"the medieval period around {figure['era']} AD, shaped by religious authority and feudal structures"
+    else:
+        era_context = f"the modern period around {figure['era']}, with print culture, nation-states, and industrial change"
+
     prompt = RECONSTRUCT_PROMPT.format(
         name=figure["name"],
         era=figure["era"],
         raw_text=figure["raw_text"],
+        era_context=era_context,
         similar_figure=similar_figure,
         d0=vector[0], d1=vector[1], d2=vector[2],
         d3=vector[3], d4=vector[4], d5=vector[5],
