@@ -44,12 +44,22 @@ FIGURES = [
 
 def seed():
     for figure in FIGURES:
+        # check if figure already exists
+        check = requests.get(f"{API_URL}?name={figure['name']}")
+        figure["api_key"] = API_KEY
+        response = requests.post(API_URL, json=figure)
+        ...
+
+def seed():
+    for figure in FIGURES:
         figure["api_key"] = API_KEY
         response = requests.post(API_URL, json=figure)
         if response.status_code == 200:
             print(f"Added: {figure['name']}")
         else:
             print(f"Failed: {figure['name']} - {response.text}")
+
+
 
 if __name__ == "__main__":
     seed()
