@@ -8,7 +8,7 @@ from routers.impute import router as impute_router
 from routers.reconstruct import router as reconstruct_router
 from routers.predict import router as predict_router
 from routers.analyze import router as analyze_router
-
+from routers.chat import router as chat_router
 
 app = FastAPI(title="Historical Persona System")
 
@@ -34,3 +34,4 @@ app.include_router(impute_router)
 app.include_router(reconstruct_router)
 app.include_router(analyze_router)
 app.include_router(predict_router)
+app.include_router(chat_router)
