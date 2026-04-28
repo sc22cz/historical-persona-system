@@ -6,7 +6,7 @@ from routers.match import router as match_router
 from routers.reverse import router as reverse_router
 from routers.impute import router as impute_router
 from routers.reconstruct import router as reconstruct_router
-
+from routers.predict import router as predict_router
 
 
 app = FastAPI(title="Historical Persona System")
@@ -31,3 +31,4 @@ app.include_router(match_router)
 app.include_router(reverse_router)
 app.include_router(impute_router)
 app.include_router(reconstruct_router)
+app.include_router(predict_router)
