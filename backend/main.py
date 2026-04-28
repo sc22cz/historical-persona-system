@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import init_db
 from routers.figures import router as figures_router
 from routers.match import router as match_router
+from routers.reverse import router as reverse_router
+
 
 app = FastAPI(title="Historical Persona System")
 
@@ -23,3 +25,4 @@ def root():
 
 app.include_router(figures_router)
 app.include_router(match_router)
+app.include_router(reverse_router)
