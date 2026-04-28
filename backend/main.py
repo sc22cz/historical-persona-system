@@ -4,6 +4,9 @@ from database import init_db
 from routers.figures import router as figures_router
 from routers.match import router as match_router
 from routers.reverse import router as reverse_router
+from routers.impute import router as impute_router
+from routers.reconstruct import router as reconstruct_router
+
 
 
 app = FastAPI(title="Historical Persona System")
@@ -26,3 +29,5 @@ def root():
 app.include_router(figures_router)
 app.include_router(match_router)
 app.include_router(reverse_router)
+app.include_router(impute_router)
+app.include_router(reconstruct_router)
