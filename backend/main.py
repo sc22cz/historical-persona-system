@@ -9,6 +9,11 @@ from routers.reconstruct import router as reconstruct_router
 from routers.predict import router as predict_router
 from routers.analyze import router as analyze_router
 from routers.chat import router as chat_router
+from routers.graph import router as graph_router
+from routers.locations import router as locations_router
+from routers.relics import router as relics_router
+from routers.benchmark import router as benchmark_router
+
 
 app = FastAPI(title="Historical Persona System")
 
@@ -35,3 +40,7 @@ app.include_router(reconstruct_router)
 app.include_router(analyze_router)
 app.include_router(predict_router)
 app.include_router(chat_router)
+app.include_router(graph_router)
+app.include_router(locations_router)
+app.include_router(relics_router)
+app.include_router(benchmark_router)
