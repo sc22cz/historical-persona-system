@@ -1,146 +1,60 @@
-import { useState } from "react"
-import axios from "axios"
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts"
+import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom"
+import Match from "./pages/Match"
+import Reverse from "./pages/Reverse"
+import Analyze from "./pages/Analyze"
+import Chat from "./pages/Chat"
+import Predict from "./pages/Predict"
+import Reconstruct from "./pages/Reconstruct"
+import Relics from "./pages/Relics"
+import Benchmark from "./pages/Benchmark"
 
-const API = "https://historical-persona-system-production.up.railway.app"
-const API_KEY = "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"
+export const API = "https://historical-persona-system-production.up.railway.app"
+export const API_KEY = "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"
+
+const nav = [
+  { path: "/", label: "Match" },
+  { path: "/reverse", label: "Reverse" },
+  { path: "/analyze", label: "Analyze" },
+  { path: "/chat", label: "Chat" },
+  { path: "/predict", label: "Predict" },
+  { path: "/reconstruct", label: "Reconstruct" },
+  { path: "/relics", label: "Relics" },
+  { path: "/benchmark", label: "Benchmark" },
+]
 
 export default function App() {
-  const [description, setDescription] = useState("")
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [reverseName, setReverseName] = useState("")
-  const [reverseResult, setReverseResult] = useState(null)
-  const [reverseLoading, setReverseLoading] = useState(false)
-
-  const handleMatch = async () => {
-    if (!description.trim()) return
-    setLoading(true)
-    try {
-      const res = await axios.post(`${API}/match/`, {
-        description,
-        api_key: API_KEY,
-        top_k: 5
-      })
-      setResult(res.data)
-    } catch (err) {
-      console.error(err)
-    }
-    setLoading(false)
-  }
-
-  const handleReverse = async () => {
-    if (!reverseName.trim()) return
-    setReverseLoading(true)
-    try {
-      const res = await axios.get(`${API}/reverse/${reverseName}?top_k=5`)
-      setReverseResult(res.data)
-    } catch (err) {
-      console.error(err)
-    }
-    setReverseLoading(false)
-  }
-
-  const radarData = result ? [
-    { dimension: "Oppression", value: result.user_profile.vector[0] },
-    { dimension: "Group", value: result.user_profile.vector[1] },
-    { dimension: "Principle", value: result.user_profile.vector[2] },
-    { dimension: "Trust", value: result.user_profile.vector[3] },
-    { dimension: "Change", value: result.user_profile.vector[4] },
-    { dimension: "Emotion", value: result.user_profile.vector[5] },
-    { dimension: "Motivation", value: result.user_profile.vector[6] },
-    { dimension: "Mission", value: result.user_profile.vector[7] },
-    { dimension: "Injustice", value: result.user_profile.vector[8] },
-    { dimension: "Expression", value: result.user_profile.vector[9] },
-  ] : []
-
   return (
-    <div style={{ maxWidth: 680, margin: "60px auto", padding: "0 20px", fontFamily: "sans-serif" }}>
-      <h1>Historical Persona Match</h1>
-      <p style={{ color: "#666" }}>Describe yourself. The system will find your historical mirror.</p>
-
-      <textarea
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-        placeholder="Describe your behaviours, decisions, and patterns..."
-        style={{ width: "100%", height: 150, padding: 12, fontSize: 14, borderRadius: 8, border: "1px solid #ddd", boxSizing: "border-box" }}
-      />
-
-      <button
-        onClick={handleMatch}
-        disabled={loading}
-        style={{ marginTop: 12, padding: "10px 24px", background: "#1a1a1a", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}
-      >
-        {loading ? "Analysing..." : "Find My Historical Mirror"}
-      </button>
-
-      {result && (
-        <div style={{ marginTop: 40 }}>
-          <h2>Your Behavioural Profile</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <RadarChart data={radarData}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11 }} />
-              <Radar dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.4} />
-            </RadarChart>
-          </ResponsiveContainer>
-
-          <h2>Your Matches</h2>
-          {result.matches.map((match, i) => (
-            <div key={i} style={{ padding: 16, marginBottom: 12, border: "1px solid #eee", borderRadius: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <strong>{match.name}</strong>
-                <span style={{ color: "#666" }}>{match.era > 0 ? match.era : `${Math.abs(match.era)} BC`}</span>
-              </div>
-              <div style={{ marginTop: 8, background: "#f5f5f5", borderRadius: 4, height: 8 }}>
-                <div style={{ width: `${match.score * 100}%`, background: "#1a1a1a", height: "100%", borderRadius: 4 }} />
-              </div>
-              <div style={{ marginTop: 4, fontSize: 12, color: "#666" }}>
-                Similarity: {(match.score * 100).toFixed(1)}%
-              </div>
-            </div>
+    <BrowserRouter>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px", fontFamily: "sans-serif" }}>
+        <h1 style={{ marginTop: 40, marginBottom: 8 }}>Historical Persona System</h1>
+        <nav style={{ display: "flex", gap: 16, marginBottom: 32, borderBottom: "1px solid #eee", paddingBottom: 12, flexWrap: "wrap" }}>
+          {nav.map(n => (
+            <NavLink
+              key={n.path}
+              to={n.path}
+              end={n.path === "/"}
+              style={({ isActive }) => ({
+                color: isActive ? "#1a1a1a" : "#999",
+                textDecoration: "none",
+                fontWeight: isActive ? 500 : 400,
+                fontSize: 14
+              })}
+            >
+              {n.label}
+            </NavLink>
           ))}
-        </div>
-      )}
-
-      <div style={{ marginTop: 60, borderTop: "1px solid #eee", paddingTop: 40 }}>
-        <h2>Reverse Search</h2>
-        <p style={{ color: "#666" }}>Enter a historical figure to find their cross-civilisation equivalents.</p>
-        <div style={{ display: "flex", gap: 12 }}>
-          <input
-            value={reverseName}
-            onChange={e => setReverseName(e.target.value)}
-            placeholder="e.g. Napoleon Bonaparte"
-            style={{ flex: 1, padding: 10, fontSize: 14, borderRadius: 8, border: "1px solid #ddd" }}
-          />
-          <button
-            onClick={handleReverse}
-            disabled={reverseLoading}
-            style={{ padding: "10px 20px", background: "#1a1a1a", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
-          >
-            {reverseLoading ? "Searching..." : "Search"}
-          </button>
-        </div>
-
-        {reverseResult && (
-          <div style={{ marginTop: 24 }}>
-            {reverseResult.matches.map((match, i) => (
-              <div key={i} style={{ padding: 16, marginBottom: 12, border: "1px solid #eee", borderRadius: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <strong>{match.name}</strong>
-                  <span style={{ color: "#666" }}>{match.era > 0 ? match.era : `${Math.abs(match.era)} BC`}</span>
-                </div>
-                <div style={{ marginTop: 8, background: "#f5f5f5", borderRadius: 4, height: 8 }}>
-                  <div style={{ width: `${match.score * 100}%`, background: "#6366f1", height: "100%", borderRadius: 4 }} />
-                </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: "#666" }}>
-                  Similarity: {(match.score * 100).toFixed(1)}%
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        </nav>
+        <Routes>
+          <Route path="/" element={<Match />} />
+          <Route path="/reverse" element={<Reverse />} />
+          <Route path="/analyze" element={<Analyze />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/predict" element={<Predict />} />
+          <Route path="/reconstruct" element={<Reconstruct />} />
+          <Route path="/relics" element={<Relics />} />
+          <Route path="/benchmark" element={<Benchmark />} />
+        </Routes>
       </div>
-    </div>
+    </BrowserRouter>
   )
 }
