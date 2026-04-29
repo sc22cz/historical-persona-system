@@ -1,6 +1,7 @@
 import json
 import anthropic
-from database import get_connection
+from services.figure_resolver import resolve_figure
+from imputer import impute_profile
 
 PREDICT_PROMPT = """You are a behavioural analyst who uses historical patterns to provide life guidance.
 

@@ -1,14 +1,29 @@
 import requests
 
 def fetch_wikipedia_text(name: str) -> str:
-    url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + name.replace(" ", "_")
+    url = "https://en.wikipedia.org/w/api.php"
+    
+    params = {
+        "action": "query",
+        "titles": name,
+        "prop": "extracts",
+        "exintro": False,
+        "explaintext": True,
+        "format": "json",
+        "redirects": 1
+    }
     
     headers = {"User-Agent": "HistoricalPersonaSystem/1.0"}
-    
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, params=params, headers=headers)
     
     if response.status_code != 200:
         return None
     
     data = response.json()
-    return data.get("extract", None)
+    pages = data["query"]["pages"]
+    page = next(iter(pages.values()))
+    
+    if "extract" not in page:
+        return None
+    
+    return page["extract"][:5000]

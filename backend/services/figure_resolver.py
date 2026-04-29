@@ -1,11 +1,12 @@
 import json
 import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import get_connection
-from extractor import extract_profile
-from wiki_fetcher import fetch_wikipedia_text
+from services.extractor import extract_profile
+from services.wiki_fetcher import fetch_wikipedia_text
 
 def resolve_figure(name: str, api_key: str) -> dict:
     conn = get_connection()
