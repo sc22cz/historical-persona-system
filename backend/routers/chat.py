@@ -9,9 +9,10 @@ from services.persona_chat import persona_chat
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 class ChatRequest(BaseModel):
+    name: str
     message: str
     api_key: str
 
-@router.post("/{figure_id}")
-def chat(figure_id: int, data: ChatRequest):
-    return persona_chat(figure_id, data.message, data.api_key)
+@router.post("/")
+def chat(data: ChatRequest):
+    return persona_chat(data.name, data.message, data.api_key)

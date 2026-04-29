@@ -1,15 +1,11 @@
 import json
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import anthropic
-from figure_resolver import resolve_figure
-from imputer import impute_profile
+from services.figure_resolver import resolve_figure
+from services.imputer import impute_profile
 
 CHAT_PROMPT = """You are {name}, the historical figure who lived around {era}.
 
-Your behavioural profile (some dimensions inferred from similar figures):
+Your behavioural profile:
 - Reaction to oppression: {d0}
 - Group dependency: {d1}
 - Principle vs interest: {d2}
@@ -29,23 +25,13 @@ Speak in first person. Be concise but characterful.
 Do not break character. Do not mention your behavioural scores.
 """
 
-def persona_chat(figure_id: int, message: str, api_key: str) -> dict:
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT f.name, f.era, f.raw_text
-        FROM figures f
-        WHERE f.id = ?
-    """, (figure_id,))
-
-    figure = cursor.fetchone()
-    conn.close()
-
+def persona_chat(name: str, message: str, api_key: str) -> dict:
+    figure = resolve_figure(name, api_key)
+    
     if not figure:
-        return {"error": "Figure not found"}
+        return {"error": f"Could not find or fetch data for '{name}'"}
 
-    imputed = impute_profile(figure_id)
+    imputed = impute_profile(figure["id"])
     vector = imputed["imputed_vector"]
 
     system_prompt = CHAT_PROMPT.format(
