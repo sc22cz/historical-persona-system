@@ -2,15 +2,20 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from services.reconstructor import reconstruct_history
+from reconstructor import reconstruct_history
+from figure_resolver import resolve_figure
 
 router = APIRouter(prefix="/reconstruct", tags=["reconstruct"])
 
 class ReconstructRequest(BaseModel):
+    name: str
     api_key: str
 
-@router.post("/{figure_id}")
-def reconstruct(figure_id: int, data: ReconstructRequest):
-    return reconstruct_history(figure_id, data.api_key)
+@router.post("/")
+def reconstruct(data: ReconstructRequest):
+    figure = resolve_figure(data.name, data.api_key)
+    if not figure:
+        raise HTTPException(status_code=404, detail=f"Figure '{data.name}' not found")
+    return reconstruct_history(figure["id"], data.api_key)
