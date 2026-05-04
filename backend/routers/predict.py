@@ -12,12 +12,11 @@ router = APIRouter(prefix="/predict", tags=["predict"])
 
 class PredictRequest(BaseModel):
     description: str
-    api_key: str
 
 @router.post("/")
 def predict(data: PredictRequest):
-    profile = extract_profile("user", data.description, data.api_key)
+    profile = extract_profile("user", data.description)
     vector = profile["vector"]
     matches = find_matches(vector, top_k=3)
-    prediction = predict_future(data.description, vector, matches, data.api_key)
+    prediction = predict_future(data.description, vector, matches)
     return prediction

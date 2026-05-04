@@ -1,5 +1,7 @@
+import os
 import json
 import anthropic
+from fastapi import HTTPException
 from database import get_connection
 from services.matcher import cosine_similarity
 
@@ -25,15 +27,12 @@ Return ONLY valid JSON:
 Scores are 0.0 to 1.0. Set confidence to 0 if no evidence.
 """
 
-def match_relic(description: str, material: str, api_key: str) -> dict:
-    prompt = RELICS_PROMPT.format(
-        description=description,
-        material=material
-    )
+def match_relic(description: str, material: str) -> dict:
+    prompt = RELICS_PROMPT.format(description=description, material=material)
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
     response = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=500,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -44,7 +43,11 @@ def match_relic(description: str, material: str, api_key: str) -> dict:
         if raw.startswith("json"):
             raw = raw[4:]
 
-    relic_profile = json.loads(raw.strip())
+    try:
+        relic_profile = json.loads(raw.strip())
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse relic profile from Claude: {e}")
+
     relic_vector = relic_profile["inferred_vector"]
 
     conn = get_connection()

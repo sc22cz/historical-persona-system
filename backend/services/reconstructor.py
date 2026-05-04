@@ -1,3 +1,4 @@
+import os
 import json
 import anthropic
 from database import get_connection
@@ -8,7 +9,7 @@ RECONSTRUCT_PROMPT = """You are a historian and behavioural analyst.
 You have been given:
 1. Known historical facts about {name} (era: {era})
 2. Their behavioural profile (10 dimensions, 0.0-1.0)
-3. The most similar modern figure: {similar_figure}
+3. The most similar reference figure: {similar_figure}
 
 Known facts:
 {raw_text}
@@ -37,7 +38,7 @@ Based on this profile and the known facts, reconstruct the following missing asp
 Write 4 short paragraphs, one for each question. Be specific and grounded in the behavioural profile. Label each paragraph clearly. Do not fabricate specific events - only infer patterns of behaviour.
 """
 
-def reconstruct_history(figure_id: int, api_key: str) -> dict:
+def reconstruct_history(figure_id: int, user_vector: list = None) -> dict:
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -54,14 +55,15 @@ def reconstruct_history(figure_id: int, api_key: str) -> dict:
     if not figure:
         return {"error": "Figure not found"}
 
-    imputed = impute_profile(figure_id)
+    imputed = impute_profile(figure_id, user_vector=user_vector)
     vector = imputed["imputed_vector"]
     imputed_from = imputed.get("imputed_from", {})
 
     similar_figure = "unknown"
     if imputed_from:
         first_key = list(imputed_from.keys())[0]
-        similar_figure = imputed_from[first_key]["borrowed_from"]
+        donor = imputed_from[first_key]["borrowed_from"]
+        similar_figure = "you (the user)" if donor == "user" else donor
 
     if figure["era"] < -500:
         era_context = f"ancient {abs(figure['era'])} BC, in a world of city-states, oral tradition, and divine kingship"
@@ -83,9 +85,9 @@ def reconstruct_history(figure_id: int, api_key: str) -> dict:
         d6=vector[6], d7=vector[7], d8=vector[8], d9=vector[9]
     )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
     response = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=1000,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -96,5 +98,6 @@ def reconstruct_history(figure_id: int, api_key: str) -> dict:
         "era": figure["era"],
         "imputed_vector": vector,
         "similar_figure": similar_figure,
+        "user_vector_used": user_vector is not None,
         "reconstruction": response.content[0].text
     }

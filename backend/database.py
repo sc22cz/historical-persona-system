@@ -4,14 +4,14 @@ from pathlib import Path
 DB_PATH = Path(__file__).parent / "data" / "historical.db"
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
-    
+
     cursor.executescript("""
         CREATE TABLE IF NOT EXISTS figures (
             id        INTEGER PRIMARY KEY,
@@ -40,14 +40,8 @@ def init_db():
         );
     """)
 
-def get_connection():
-    conn = sqlite3.connect(DB_PATH, timeout=30)
-    conn.row_factory = sqlite3.Row
-    return conn
-    
     conn.commit()
     conn.close()
-    print("Database initialised successfully.")
 
 if __name__ == "__main__":
     init_db()

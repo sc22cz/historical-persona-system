@@ -8,7 +8,7 @@ from database import get_connection
 from services.extractor import extract_profile
 from services.wiki_fetcher import fetch_wikipedia_text
 
-def resolve_figure(name: str, api_key: str) -> dict:
+def resolve_figure(name: str) -> dict:
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -30,7 +30,7 @@ def resolve_figure(name: str, api_key: str) -> dict:
         conn.close()
         return None
 
-    profile = extract_profile(name, text, api_key)
+    profile = extract_profile(name, text)
 
     cursor.execute("""
         INSERT INTO figures (name, era, period, source, raw_text)

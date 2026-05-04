@@ -1,13 +1,15 @@
-import json
+import os
 import anthropic
-from services.figure_resolver import resolve_figure
-from imputer import impute_profile
 
-PREDICT_PROMPT = """You are a behavioural analyst who uses historical patterns to provide life guidance.
+PREDICT_PROMPT = """You are channeling the lived wisdom of historical figures — not as an analyst, but as their voice.
 
-A user has described themselves and been matched to historical figures. Based on their behavioural profile and their closest historical matches, provide life guidance.
+A person has described themselves:
+{description}
 
-User's behavioural profile:
+They share deep behavioural patterns with these historical figures:
+{matches_detail}
+
+Their behavioural profile:
 - Reaction to oppression: {d0} (0=endures silently, 1=actively resists)
 - Group dependency: {d1} (0=lone wolf, 1=relies on collective)
 - Principle vs interest: {d2} (0=principle above all, 1=interest above all)
@@ -19,39 +21,38 @@ User's behavioural profile:
 - Response to injustice: {d8} (0=accepts and adapts, 1=anger and resistance)
 - Expression style: {d9} (0=silent and reserved, 1=vocal and assertive)
 
-Closest historical matches:
-{matches}
+Now respond as if these historical figures are speaking directly to this person. Do NOT give abstract analysis. Do NOT give therapist-style advice. Do NOT be rational or balanced.
 
-User's self description:
-{description}
+Instead:
+- Speak in the raw, direct voice of someone who has lived through real consequences
+- Reference how these specific figures actually handled adversity — their real decisions, their real failures, their real instincts
+- Be honest about the dangers of this person's nature, based on how similar figures were destroyed or succeeded
+- Ground every word in character and lived experience, not theory
 
-Based on this profile and historical parallels, provide:
-1. Their likely life trajectory and peak period
-2. Their greatest strength and their blind spot
-3. The type of crisis they are most likely to face
-4. One concrete piece of advice drawn from how their historical matches navigated similar challenges
-
-Be specific, honest, and grounded in the behavioural data. Avoid generic life advice.
+Tell this person what they need to hear — not what they want to hear.
+What would {match_names} say to someone exactly like them?
 """
 
-def predict_future(description: str, vector: list, matches: list, api_key: str) -> dict:
-    matches_text = "\n".join([
-        f"- {m['name']} ({m['era']} {'BC' if m['era'] < 0 else 'AD'}): similarity {m['score']}"
+def predict_future(description: str, vector: list, matches: list) -> dict:
+    matches_detail = "\n".join([
+        f"- {m['name']} ({abs(m['era'])} {'BC' if m['era'] < 0 else 'AD'}): {round(m['score']*100,1)}% behavioural similarity"
         for m in matches
     ])
+    match_names = ", ".join([m["name"] for m in matches])
 
     prompt = PREDICT_PROMPT.format(
+        description=description,
+        matches_detail=matches_detail,
+        match_names=match_names,
         d0=vector[0], d1=vector[1], d2=vector[2],
         d3=vector[3], d4=vector[4], d5=vector[5],
-        d6=vector[6], d7=vector[7], d8=vector[8], d9=vector[9],
-        matches=matches_text,
-        description=description
+        d6=vector[6], d7=vector[7], d8=vector[8], d9=vector[9]
     )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
     response = client.messages.create(
-        model="claude-sonnet-4-5",
-        max_tokens=1000,
+        model="claude-sonnet-4-6",
+        max_tokens=1200,
         messages=[{"role": "user", "content": prompt}]
     )
 

@@ -1,5 +1,7 @@
+import os
 import json
 import anthropic
+from fastapi import HTTPException
 from database import get_connection
 
 LOCATIONS_PROMPT = """You are a historical geographer. Based on the following information about {name} (era: {era}), list the key locations associated with their life.
@@ -23,7 +25,7 @@ Return ONLY valid JSON, no other text:
 Include 3-6 locations maximum. Only include locations with high historical confidence.
 """
 
-def get_figure_locations(figure_id: int, api_key: str) -> dict:
+def get_figure_locations(figure_id: int) -> dict:
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -45,9 +47,9 @@ def get_figure_locations(figure_id: int, api_key: str) -> dict:
         raw_text=figure["raw_text"]
     )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
     response = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=1000,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -58,8 +60,10 @@ def get_figure_locations(figure_id: int, api_key: str) -> dict:
         if raw.startswith("json"):
             raw = raw[4:]
 
-    import json
-    result = json.loads(raw.strip())
+    try:
+        result = json.loads(raw.strip())
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse locations from Claude: {e}")
 
     return {
         "figure": figure["name"],

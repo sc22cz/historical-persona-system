@@ -11,8 +11,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 class ChatRequest(BaseModel):
     name: str
     message: str
-    api_key: str
 
 @router.post("/")
 def chat(data: ChatRequest):
-    return persona_chat(data.name, data.message, data.api_key)
+    return persona_chat(data.name, data.message)

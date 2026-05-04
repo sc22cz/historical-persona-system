@@ -11,8 +11,7 @@ router = APIRouter(prefix="/relics", tags=["relics"])
 class RelicRequest(BaseModel):
     description: str
     material: str
-    api_key: str
 
 @router.post("/match/")
 def relic_match(data: RelicRequest):
-    return match_relic(data.description, data.material, data.api_key)
+    return match_relic(data.description, data.material)

@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import init_db
@@ -26,6 +27,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup():
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set")
     init_db()
 
 @app.get("/")

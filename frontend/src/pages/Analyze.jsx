@@ -1,75 +1,190 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import axios from "axios"
-import { API, API_KEY } from "../App"
+import { API } from "../App"
 
-export default function Analyze() {
+const DIMS = ["Oppression", "Group", "Principle", "Trust", "Change", "Emotion", "Motivation", "Mission", "Injustice", "Expression"]
+
+const S = {
+  desc: { fontSize: 13, color: "#888", marginBottom: 20, lineHeight: 1.7 },
+  row: { display: "flex", gap: 10, marginBottom: 12 },
+  err: { padding: "10px 14px", background: "#fafafa", border: "1px solid #e5e5e5", borderRadius: 6, fontSize: 13, color: "#dc2626", marginBottom: 16 },
+  success: { padding: 16, background: "#f8f8f8", border: "1px solid #e5e5e5", borderRadius: 8, marginBottom: 24 },
+  card: { border: "1px solid #e5e5e5", borderRadius: 8, marginBottom: 8, overflow: "hidden" },
+  cardHeader: (expanded) => ({
+    padding: "12px 16px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    cursor: "pointer",
+    background: expanded ? "#f8f8f8" : "#fff",
+  }),
+  cardBody: { padding: "0 16px 16px" },
+  dimRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 },
+  dimLabel: { width: 80, fontSize: 11, color: "#888", flexShrink: 0 },
+  bar: { flex: 1, background: "#f0f0f0", borderRadius: 3, height: 5 },
+  fill: (pct, low) => ({ width: `${pct}%`, background: low ? "#ccc" : "#111", height: "100%", borderRadius: 3, transition: "width 0.4s" }),
+  dimVal: { width: 30, fontSize: 11, color: "#888", textAlign: "right" },
+  letterGroup: { marginBottom: 16 },
+  letterHead: { fontSize: 11, fontWeight: 700, color: "#ccc", letterSpacing: 3, marginBottom: 6, padding: "4px 0", borderBottom: "1px solid #f0f0f0" },
+}
+
+function DimBars({ vector, confidence }) {
+  return (
+    <div style={{ marginTop: 8 }}>
+      {DIMS.map((dim, i) => (
+        <div key={i} style={S.dimRow}>
+          <span style={S.dimLabel}>{dim}</span>
+          <div style={S.bar}>
+            <div style={S.fill((vector[i] ?? 0) * 100, confidence && confidence[i] < 0.3)} />
+          </div>
+          <span style={S.dimVal}>{(vector[i] ?? 0).toFixed(2)}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function FigureCard({ figure, expanded, onToggle }) {
+  const era = figure.era === 0 ? "unknown era" : figure.era < 0 ? `${Math.abs(figure.era)} BC` : `${figure.era} AD`
+  return (
+    <div style={S.card}>
+      <div style={S.cardHeader(expanded)} onClick={onToggle}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{figure.name}</span>
+          <span style={{ fontSize: 12, color: "#888" }}>{era}</span>
+          {figure.period && (
+            <span style={{ fontSize: 11, color: "#aaa", background: "#f0f0f0", padding: "1px 6px", borderRadius: 4 }}>{figure.period}</span>
+          )}
+        </div>
+        <span style={{ color: "#ccc", fontSize: 11 }}>{expanded ? "▲" : "▼"}</span>
+      </div>
+      {expanded && (
+        <div style={S.cardBody}>
+          <DimBars vector={figure.vector} confidence={figure.confidence} />
+          {figure.evidence && (
+            <details style={{ marginTop: 10 }}>
+              <summary style={{ fontSize: 11, color: "#aaa", cursor: "pointer" }}>Evidence</summary>
+              <ul style={{ fontSize: 11, color: "#888", marginTop: 6, paddingLeft: 16, lineHeight: 1.8 }}>
+                {figure.evidence.map((e, i) => <li key={i}><strong>{DIMS[i]}:</strong> {e}</li>)}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function Figures() {
   const [name, setName] = useState("")
+  const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [figures, setFigures] = useState([])
+  const [loadingList, setLoadingList] = useState(false)
+  const [expandedId, setExpandedId] = useState(null)
+  const [search, setSearch] = useState("")
+
+  const loadFigures = async () => {
+    setLoadingList(true)
+    try {
+      const res = await axios.get(`${API}/figures/`)
+      setFigures(res.data)
+    } catch {}
+    setLoadingList(false)
+  }
+
+  useEffect(() => { loadFigures() }, [])
 
   const handleAnalyze = async () => {
     if (!name.trim()) return
-    setLoading(true)
+    setAnalyzing(true)
+    setError("")
+    setResult(null)
     try {
-      const res = await axios.post(`${API}/analyze/`, {
-        name,
-        api_key: API_KEY
-      })
+      const res = await axios.post(`${API}/analyze/`, { name: name.trim() })
       setResult(res.data)
+      setName("")
+      await loadFigures()
     } catch (err) {
-      console.error(err)
+      setError(err.response?.data?.detail || "Analysis failed. Check the name is a valid Wikipedia entry.")
     }
-    setLoading(false)
+    setAnalyzing(false)
   }
+
+  const filtered = figures.filter(f => f.name.toLowerCase().includes(search.toLowerCase()))
+  const grouped = {}
+  for (const f of filtered) {
+    const letter = f.name[0].toUpperCase()
+    if (!grouped[letter]) grouped[letter] = []
+    grouped[letter].push(f)
+  }
+  const letters = Object.keys(grouped).sort()
 
   return (
     <div>
-      <p style={{ color: "#666" }}>Enter any person's name. The system will fetch their Wikipedia page and build a behavioural profile.</p>
-      <div style={{ display: "flex", gap: 12 }}>
+      <h2 style={{ marginBottom: 6 }}>Analyse a Historical Figure</h2>
+      <p style={S.desc}>
+        Enter an English name exactly as it appears on Wikipedia. The system extracts their 10-dimensional behavioural profile and adds them to the database.
+      </p>
+
+      <div style={S.row}>
         <input
           value={name}
           onChange={e => setName(e.target.value)}
-          placeholder="e.g. Cao Cao, Zhang Juzheng, Alan Turing"
-          style={{ flex: 1, padding: 10, fontSize: 14, borderRadius: 8, border: "1px solid #ddd" }}
+          onKeyDown={e => e.key === "Enter" && handleAnalyze()}
+          placeholder="e.g. Napoleon Bonaparte, Cao Cao, Alan Turing"
+          style={{ flex: 1 }}
         />
-        <button
-          onClick={handleAnalyze}
-          disabled={loading}
-          style={{ padding: "10px 20px", background: "#1a1a1a", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
-        >
-          {loading ? "Analysing..." : "Analyse"}
+        <button className="primary" onClick={handleAnalyze} disabled={analyzing} style={{ whiteSpace: "nowrap" }}>
+          {analyzing ? "Analysing…" : "Analyse"}
         </button>
       </div>
 
-      {result && (
-        <div style={{ marginTop: 24 }}>
-          <h2>{result.name}</h2>
-          <h3>Behavioural Vector</h3>
-          {["Oppression", "Group", "Principle", "Trust", "Change", "Emotion", "Motivation", "Mission", "Injustice", "Expression"].map((dim, i) => (
-            <div key={i} style={{ marginBottom: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span>{dim}</span>
-                <span style={{ color: "#666" }}>{result.profile.vector[i].toFixed(2)}</span>
-              </div>
-              <div style={{ background: "#f5f5f5", borderRadius: 4, height: 6, marginTop: 4 }}>
-                <div style={{ width: `${result.profile.vector[i] * 100}%`, background: "#6366f1", height: "100%", borderRadius: 4 }} />
-              </div>
-            </div>
-          ))}
+      {error && <div style={S.err}>{error}</div>}
 
-          <h3 style={{ marginTop: 24 }}>Closest Matches</h3>
-          {result.matches.map((match, i) => (
-            <div key={i} style={{ padding: 16, marginBottom: 12, border: "1px solid #eee", borderRadius: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <strong>{match.name}</strong>
-                <span style={{ color: "#666" }}>{match.era > 0 ? match.era : `${Math.abs(match.era)} BC`}</span>
-              </div>
-              <div style={{ marginTop: 4, fontSize: 12, color: "#666" }}>
-                Similarity: {(match.score * 100).toFixed(1)}%
-              </div>
-            </div>
-          ))}
+      {result && (
+        <div style={S.success}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#111", marginBottom: 8 }}>✓ {result.name} added</div>
+          <DimBars vector={result.profile.vector} confidence={result.profile.confidence} />
         </div>
+      )}
+
+      <hr style={{ border: "none", borderTop: "1px solid #e5e5e5", margin: "24px 0" }} />
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ margin: 0 }}>
+          Database
+          <span style={{ fontSize: 13, fontWeight: 400, color: "#888", marginLeft: 8 }}>{figures.length} figures</span>
+        </h2>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search…"
+          style={{ width: 160, padding: "6px 12px", fontSize: 13 }}
+        />
+      </div>
+
+      {loadingList ? (
+        <p style={{ color: "#aaa", fontSize: 13 }}>Loading…</p>
+      ) : figures.length === 0 ? (
+        <p style={{ color: "#aaa", fontSize: 13 }}>No figures yet. Analyse someone above to add them.</p>
+      ) : filtered.length === 0 ? (
+        <p style={{ color: "#aaa", fontSize: 13 }}>No results for "{search}"</p>
+      ) : (
+        letters.map(letter => (
+          <div key={letter} style={S.letterGroup}>
+            <div style={S.letterHead}>{letter}</div>
+            {grouped[letter].map(fig => (
+              <FigureCard
+                key={fig.id}
+                figure={fig}
+                expanded={expandedId === fig.id}
+                onToggle={() => setExpandedId(expandedId === fig.id ? null : fig.id)}
+              />
+            ))}
+          </div>
+        ))
       )}
     </div>
   )

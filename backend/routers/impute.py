@@ -11,11 +11,10 @@ router = APIRouter(prefix="/impute", tags=["impute"])
 
 class ImputeRequest(BaseModel):
     name: str
-    api_key: str
 
 @router.post("/")
 def impute(data: ImputeRequest):
-    figure = resolve_figure(data.name, data.api_key)
+    figure = resolve_figure(data.name)
     if not figure:
         raise HTTPException(status_code=404, detail=f"Figure '{data.name}' not found")
     return impute_profile(figure["id"])

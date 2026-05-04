@@ -1,4 +1,3 @@
-import json
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,12 +11,11 @@ router = APIRouter(prefix="/match", tags=["match"])
 
 class UserInput(BaseModel):
     description: str
-    api_key: str
     top_k: int = 5
 
 @router.post("/")
 def match_user(data: UserInput):
-    profile = extract_profile("user", data.description, data.api_key)
+    profile = extract_profile("user", data.description)
     vector = profile["vector"]
     matches = find_matches(vector, data.top_k)
     return {

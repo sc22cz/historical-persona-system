@@ -1,9 +1,11 @@
+import os
 import json
 import anthropic
+from fastapi import HTTPException
 
 DIMENSIONS = [
     "reaction_to_oppression",
-    "group_dependency", 
+    "group_dependency",
     "principle_vs_interest",
     "interpersonal_trust",
     "change_orientation",
@@ -14,8 +16,8 @@ DIMENSIONS = [
     "expression_style"
 ]
 
-PROMPT_TEMPLATE = """You are a behavioural analyst specialising in historical figures.
-Analyse the following text and score the person on 10 behavioural dimensions.
+SYSTEM_PROMPT = """You are a behavioural analyst specialising in historical figures.
+Analyse the provided text and score the person on 10 behavioural dimensions.
 
 Rules:
 - Score based ONLY on observable behaviours described in the text
@@ -41,34 +43,28 @@ Output ONLY valid JSON, no other text:
   "vector": [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10],
   "confidence": [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10],
   "evidence": ["reason for d1", ..., "reason for d10"]
-}
+}"""
 
-Text to analyse:
-{text}
-"""
+def extract_profile(name: str, text: str) -> dict:
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-def extract_profile(name: str, text: str, api_key: str) -> dict:
-    client = anthropic.Anthropic(api_key=api_key)
-    
-    prompt = PROMPT_TEMPLATE.replace("{text}", text)
-    
     response = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=1000,
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": f"Text to analyse:\n{text}"}]
     )
-    
 
     raw = response.content[0].text.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]
-    result = json.loads(raw.strip())
 
-
+    try:
+        result = json.loads(raw.strip())
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse profile from Claude: {e}")
 
     result["name"] = name
     return result

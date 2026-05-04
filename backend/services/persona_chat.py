@@ -1,6 +1,5 @@
-import json
-import sys
 import os
+import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import anthropic
@@ -29,8 +28,8 @@ Speak in first person. Be concise but characterful.
 Do not break character. Do not mention your behavioural scores.
 """
 
-def persona_chat(name: str, message: str, api_key: str) -> dict:
-    figure = resolve_figure(name, api_key)
+def persona_chat(name: str, message: str) -> dict:
+    figure = resolve_figure(name)
 
     if not figure:
         return {"error": f"Could not find or fetch data for '{name}'"}
@@ -47,9 +46,9 @@ def persona_chat(name: str, message: str, api_key: str) -> dict:
         d6=vector[6], d7=vector[7], d8=vector[8], d9=vector[9]
     )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
     response = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=500,
         system=system_prompt,
         messages=[{"role": "user", "content": message}]

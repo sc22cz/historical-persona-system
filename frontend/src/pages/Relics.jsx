@@ -1,70 +1,82 @@
 import { useState } from "react"
 import axios from "axios"
-import { API, API_KEY } from "../App"
+import { API } from "../App"
+
+const S = {
+  desc: { fontSize: 13, color: "#888", marginBottom: 20, lineHeight: 1.7 },
+  label: { fontSize: 12, fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, display: "block" },
+  card: { border: "1px solid #e5e5e5", borderRadius: 8, padding: "12px 16px", marginBottom: 8 },
+  cardRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+  name: { fontSize: 14, fontWeight: 600, color: "#111" },
+  era: { fontSize: 12, color: "#888" },
+  bar: { background: "#f0f0f0", borderRadius: 3, height: 5, marginTop: 10 },
+  fill: (pct) => ({ width: `${pct}%`, background: "#111", height: "100%", borderRadius: 3 }),
+  sim: { fontSize: 12, color: "#888", marginTop: 6 },
+  reasoning: { fontSize: 13, color: "#555", lineHeight: 1.8, padding: "12px 16px", background: "#f8f8f8", border: "1px solid #e5e5e5", borderRadius: 8, marginBottom: 24 },
+  err: { padding: "10px 14px", background: "#fafafa", border: "1px solid #e5e5e5", borderRadius: 6, fontSize: 13, color: "#dc2626", marginTop: 12 },
+}
 
 export default function Relics() {
   const [description, setDescription] = useState("")
   const [material, setMaterial] = useState("")
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleMatch = async () => {
     if (!description.trim()) return
     setLoading(true)
+    setError("")
+    setResult(null)
     try {
-      const res = await axios.post(`${API}/relics/match/`, {
-        description,
-        material,
-        api_key: API_KEY
-      })
+      const res = await axios.post(`${API}/relics/match/`, { description, material })
       setResult(res.data)
     } catch (err) {
-      console.error(err)
+      setError(err.response?.data?.detail || "Analysis failed. Please try again.")
     }
     setLoading(false)
   }
 
   return (
     <div>
-      <p style={{ color: "#666" }}>Describe a relic or artefact. The system will match it to historical figures with similar behavioural profiles.</p>
-      
+      <h2 style={{ marginBottom: 6 }}>Relic Attribution</h2>
+      <p style={S.desc}>Describe an artefact. The system will build its behavioural profile and match it to historical figures with similar patterns.</p>
+
+      <span style={S.label}>Material</span>
       <input
         value={material}
         onChange={e => setMaterial(e.target.value)}
-        placeholder="Material (e.g. bronze, jade, iron)"
-        style={{ width: "100%", padding: 10, fontSize: 14, borderRadius: 8, border: "1px solid #ddd", boxSizing: "border-box", marginBottom: 12 }}
+        placeholder="e.g. bronze, jade, iron, stone"
+        style={{ width: "100%", marginBottom: 16 }}
       />
+
+      <span style={S.label}>Description</span>
       <textarea
         value={description}
         onChange={e => setDescription(e.target.value)}
-        placeholder="Describe the relic (e.g. a heavy bronze sword with military engravings...)"
-        style={{ width: "100%", height: 120, padding: 12, fontSize: 14, borderRadius: 8, border: "1px solid #ddd", boxSizing: "border-box" }}
+        placeholder="Describe the relic — its form, symbols, purpose, scale, and context…"
+        style={{ width: "100%", height: 120, marginBottom: 12 }}
       />
-      <button
-        onClick={handleMatch}
-        disabled={loading}
-        style={{ marginTop: 12, padding: "10px 24px", background: "#1a1a1a", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}
-      >
-        {loading ? "Analysing..." : "Match Relic"}
+      <button className="primary" onClick={handleMatch} disabled={loading}>
+        {loading ? "Analysing…" : "Match Relic"}
       </button>
+
+      {error && <div style={S.err}>{error}</div>}
 
       {result && (
         <div style={{ marginTop: 32 }}>
-          <h2>Relic Analysis</h2>
-          <p style={{ fontSize: 14, color: "#555", lineHeight: 1.6 }}>{result.relic_profile.reasoning}</p>
-          <h2 style={{ marginTop: 24 }}>Closest Historical Matches</h2>
+          <h2 style={{ marginBottom: 12 }}>Relic Analysis</h2>
+          <div style={S.reasoning}>{result.relic_profile.reasoning}</div>
+
+          <h2 style={{ marginBottom: 16 }}>Closest Historical Matches</h2>
           {result.matches.map((match, i) => (
-            <div key={i} style={{ padding: 16, marginBottom: 12, border: "1px solid #eee", borderRadius: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <strong>{match.name}</strong>
-                <span style={{ color: "#666" }}>{match.era > 0 ? match.era : `${Math.abs(match.era)} BC`}</span>
+            <div key={i} style={S.card}>
+              <div style={S.cardRow}>
+                <span style={S.name}>{match.name}</span>
+                <span style={S.era}>{match.era < 0 ? `${Math.abs(match.era)} BC` : `${match.era} AD`}</span>
               </div>
-              <div style={{ marginTop: 8, background: "#f5f5f5", borderRadius: 4, height: 6 }}>
-                <div style={{ width: `${match.score * 100}%`, background: "#6366f1", height: "100%", borderRadius: 4 }} />
-              </div>
-              <div style={{ marginTop: 4, fontSize: 12, color: "#666" }}>
-                Similarity: {(match.score * 100).toFixed(1)}%
-              </div>
+              <div style={S.bar}><div style={S.fill(match.score * 100)} /></div>
+              <div style={S.sim}>{(match.score * 100).toFixed(1)}% behavioural similarity</div>
             </div>
           ))}
         </div>
