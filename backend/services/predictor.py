@@ -1,15 +1,15 @@
 import os
+import json
 import anthropic
+from database import get_connection
+from services.matcher import cosine_similarity
 
-PREDICT_PROMPT = """You are channeling the lived wisdom of historical figures — not as an analyst, but as their voice.
+FIGURE_PROMPT = """You are {name}, speaking directly to someone who has asked you a question.
 
-A person has described themselves:
-{description}
+Known facts about your life and deeds:
+{raw_text}
 
-They share deep behavioural patterns with these historical figures:
-{matches_detail}
-
-Their behavioural profile:
+Your behavioural profile:
 - Reaction to oppression: {d0} (0=endures silently, 1=actively resists)
 - Group dependency: {d1} (0=lone wolf, 1=relies on collective)
 - Principle vs interest: {d2} (0=principle above all, 1=interest above all)
@@ -21,43 +21,85 @@ Their behavioural profile:
 - Response to injustice: {d8} (0=accepts and adapts, 1=anger and resistance)
 - Expression style: {d9} (0=silent and reserved, 1=vocal and assertive)
 
-Now respond as if these historical figures are speaking directly to this person. Do NOT give abstract analysis. Do NOT give therapist-style advice. Do NOT be rational or balanced.
+The question asked of you:
+{question}
 
-Instead:
-- Speak in the raw, direct voice of someone who has lived through real consequences
-- Reference how these specific figures actually handled adversity — their real decisions, their real failures, their real instincts
-- Be honest about the dangers of this person's nature, based on how similar figures were destroyed or succeeded
-- Ground every word in character and lived experience, not theory
-
-Tell this person what they need to hear — not what they want to hear.
-What would {match_names} say to someone exactly like them?
+Respond as {name} — in the first person, in your own voice. Draw directly on your actual historical decisions, experiences, failures, and victories. Let your answer be shaped by what you genuinely lived through. Respond to the specific question with the wisdom you earned. Be direct, characterful, and unafraid. Do not break character. Do not mention similarity scores or profiles. Write 2-3 paragraphs.
 """
 
-def predict_future(description: str, vector: list, matches: list) -> dict:
-    matches_detail = "\n".join([
-        f"- {m['name']} ({abs(m['era'])} {'BC' if m['era'] < 0 else 'AD'}): {round(m['score']*100,1)}% behavioural similarity"
-        for m in matches
-    ])
-    match_names = ", ".join([m["name"] for m in matches])
 
-    prompt = PREDICT_PROMPT.format(
-        description=description,
-        matches_detail=matches_detail,
-        match_names=match_names,
-        d0=vector[0], d1=vector[1], d2=vector[2],
-        d3=vector[3], d4=vector[4], d5=vector[5],
-        d6=vector[6], d7=vector[7], d8=vector[8], d9=vector[9]
+def _get_all_figures_with_vectors() -> list:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT f.id, f.name, f.era, f.period, f.raw_text, p.vector
+        FROM figures f
+        JOIN profiles p ON f.id = p.figure_id
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def _top_n_by_similarity(figures: list, user_vector: list, n: int) -> list:
+    scored = []
+    for fig in figures:
+        vec = json.loads(fig["vector"])
+        score = cosine_similarity(user_vector, vec)
+        scored.append({**fig, "score": round(score, 4)})
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    return scored[:n]
+
+
+def _generate_response(figure: dict, question: str, client: anthropic.Anthropic) -> str:
+    safe_raw_text = (figure["raw_text"] or "").replace("{", "{{").replace("}", "}}")
+    vec = json.loads(figure["vector"])
+    prompt = FIGURE_PROMPT.format(
+        name=figure["name"],
+        raw_text=safe_raw_text,
+        question=question,
+        d0=vec[0], d1=vec[1], d2=vec[2],
+        d3=vec[3], d4=vec[4], d5=vec[5],
+        d6=vec[6], d7=vec[7], d8=vec[8], d9=vec[9],
     )
-
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1200,
-        messages=[{"role": "user", "content": prompt}]
+        max_tokens=800,
+        messages=[{"role": "user", "content": prompt}],
     )
+    return response.content[0].text
+
+
+def get_historical_responses(user_vector: list, question: str) -> dict:
+    all_figures = _get_all_figures_with_vectors()
+
+    ancient = [f for f in all_figures if f["era"] is not None and f["era"] < 1800]
+    modern = [f for f in all_figures if f["era"] is not None and f["era"] >= 1800]
+
+    top_ancient = _top_n_by_similarity(ancient, user_vector, 2)
+    top_modern = _top_n_by_similarity(modern, user_vector, 2)
+
+    selected = [
+        {**fig, "type": "ancient"} for fig in top_ancient
+    ] + [
+        {**fig, "type": "modern"} for fig in top_modern
+    ]
+
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+    figures_output = []
+    for fig in selected:
+        response_text = _generate_response(fig, question, client)
+        figures_output.append({
+            "name": fig["name"],
+            "era": fig["era"],
+            "period": fig["period"],
+            "score": fig["score"],
+            "type": fig["type"],
+            "response": response_text,
+        })
 
     return {
-        "vector": vector,
-        "matches": matches,
-        "prediction": response.content[0].text
+        "question": question,
+        "figures": figures_output,
     }

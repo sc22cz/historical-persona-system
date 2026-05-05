@@ -6,27 +6,25 @@ import { SkeletonList } from "../components/Skeleton"
 const DIMS = ["Oppression", "Group", "Principle", "Trust", "Change", "Emotion", "Motivation", "Mission", "Injustice", "Expression"]
 
 const S = {
-  desc: { fontSize: 13, color: "#888", marginBottom: 20, lineHeight: 1.7 },
+  desc: { fontSize: 13, color: "var(--text3)", marginBottom: 20, lineHeight: 1.7 },
   row: { display: "flex", gap: 10, marginBottom: 12 },
-  err: { padding: "10px 14px", background: "#fafafa", border: "1px solid #e5e5e5", borderRadius: 6, fontSize: 13, color: "#dc2626", marginBottom: 16 },
-  success: { padding: 16, background: "#f8f8f8", border: "1px solid #e5e5e5", borderRadius: 8, marginBottom: 24 },
-  card: { border: "1px solid #e5e5e5", borderRadius: 8, marginBottom: 8, overflow: "hidden" },
+  err: { padding: "10px 14px", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 13, color: "#dc2626", marginBottom: 16 },
+  success: { padding: 16, background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 8, marginBottom: 24 },
+  card: { border: "1px solid var(--border)", borderRadius: 8, marginBottom: 8, overflow: "hidden" },
   cardHeader: (expanded) => ({
     padding: "12px 16px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     cursor: "pointer",
-    background: expanded ? "#f8f8f8" : "#fff",
+    background: expanded ? "var(--bg2)" : "var(--bg)",
   }),
   cardBody: { padding: "0 16px 16px" },
   dimRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 },
-  dimLabel: { width: 80, fontSize: 11, color: "#888", flexShrink: 0 },
-  bar: { flex: 1, background: "#f0f0f0", borderRadius: 3, height: 5 },
-  fill: (pct, low) => ({ width: `${pct}%`, background: low ? "#ccc" : "#111", height: "100%", borderRadius: 3, transition: "width 0.4s" }),
-  dimVal: { width: 30, fontSize: 11, color: "#888", textAlign: "right" },
-  letterGroup: { marginBottom: 16 },
-  letterHead: { fontSize: 11, fontWeight: 700, color: "#ccc", letterSpacing: 3, marginBottom: 6, padding: "4px 0", borderBottom: "1px solid #f0f0f0" },
+  dimLabel: { width: 80, fontSize: 11, color: "var(--text3)", flexShrink: 0 },
+  bar: { flex: 1, background: "var(--bg3)", borderRadius: 3, height: 5 },
+  fill: (pct, low) => ({ width: `${pct}%`, background: low ? "var(--text4)" : "var(--text)", height: "100%", borderRadius: 3, transition: "width 0.4s" }),
+  dimVal: { width: 30, fontSize: 11, color: "var(--text3)", textAlign: "right" },
 }
 
 function DimBars({ vector, confidence }) {
@@ -51,21 +49,21 @@ function FigureCard({ figure, expanded, onToggle }) {
     <div className="card-hover" style={S.card}>
       <div style={S.cardHeader(expanded)} onClick={onToggle}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{figure.name}</span>
-          <span style={{ fontSize: 12, color: "#888" }}>{era}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{figure.name}</span>
+          <span style={{ fontSize: 12, color: "var(--text3)" }}>{era}</span>
           {figure.period && (
-            <span style={{ fontSize: 11, color: "#aaa", background: "#f0f0f0", padding: "1px 6px", borderRadius: 4 }}>{figure.period}</span>
+            <span style={{ fontSize: 11, color: "var(--text3)", background: "var(--bg3)", padding: "1px 6px", borderRadius: 4 }}>{figure.period}</span>
           )}
         </div>
-        <span style={{ color: "#ccc", fontSize: 11 }}>{expanded ? "▲" : "▼"}</span>
+        <span style={{ color: "var(--text4)", fontSize: 11 }}>{expanded ? "▲" : "▼"}</span>
       </div>
       {expanded && (
         <div style={S.cardBody}>
           <DimBars vector={figure.vector} confidence={figure.confidence} />
           {figure.evidence && (
             <details style={{ marginTop: 10 }}>
-              <summary style={{ fontSize: 11, color: "#aaa", cursor: "pointer" }}>Evidence</summary>
-              <ul style={{ fontSize: 11, color: "#888", marginTop: 6, paddingLeft: 16, lineHeight: 1.8 }}>
+              <summary style={{ fontSize: 11, color: "var(--text4)", cursor: "pointer" }}>Evidence</summary>
+              <ul style={{ fontSize: 11, color: "var(--text3)", marginTop: 6, paddingLeft: 16, lineHeight: 1.8 }}>
                 {figure.evidence.map((e, i) => <li key={i}><strong>{DIMS[i]}:</strong> {e}</li>)}
               </ul>
             </details>
@@ -121,17 +119,10 @@ export default function Figures() {
   }
 
   const filtered = figures.filter(f => f.name.toLowerCase().includes(search.toLowerCase()))
-  const grouped = {}
-  for (const f of filtered) {
-    const letter = f.name[0].toUpperCase()
-    if (!grouped[letter]) grouped[letter] = []
-    grouped[letter].push(f)
-  }
-  const letters = Object.keys(grouped).sort()
 
   return (
     <div>
-      <h2 style={{ marginBottom: 6 }}>Analyse a Historical Figure</h2>
+      <h2 style={{ marginBottom: 6 }}>Search data</h2>
       <p style={S.desc}>
         Enter an English name exactly as it appears on Wikipedia. The system extracts their 10-dimensional behavioural profile and adds them to the database.
       </p>
@@ -187,7 +178,7 @@ export default function Figures() {
 
       {result && (
         <div style={S.success}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#111", marginBottom: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>
             {result.reanalyzed ? "↻" : "✓"} {result.name} {result.reanalyzed ? "re-analysed" : result.cached ? "(cached)" : "added"}
           </div>
           <DimBars vector={result.profile.vector} confidence={result.profile.confidence} />
@@ -199,7 +190,7 @@ export default function Figures() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h2 style={{ margin: 0 }}>
           Database
-          <span style={{ fontSize: 13, fontWeight: 400, color: "#888", marginLeft: 8 }}>{figures.length} figures</span>
+          <span style={{ fontSize: 13, fontWeight: 400, color: "var(--text3)", marginLeft: 8 }}>{figures.length} figures</span>
         </h2>
         <input
           value={search}
@@ -212,22 +203,17 @@ export default function Figures() {
       {loadingList ? (
         <SkeletonList count={6} />
       ) : figures.length === 0 ? (
-        <p style={{ color: "#aaa", fontSize: 13 }}>No figures yet. Analyse someone above to add them.</p>
+        <p style={{ color: "var(--text4)", fontSize: 13 }}>No figures yet. Add someone above to get started.</p>
       ) : filtered.length === 0 ? (
         <p style={{ color: "#aaa", fontSize: 13 }}>No results for "{search}"</p>
       ) : (
-        letters.map(letter => (
-          <div key={letter} style={S.letterGroup}>
-            <div style={S.letterHead}>{letter}</div>
-            {grouped[letter].map(fig => (
-              <FigureCard
-                key={fig.id}
-                figure={fig}
-                expanded={expandedId === fig.id}
-                onToggle={() => setExpandedId(expandedId === fig.id ? null : fig.id)}
-              />
-            ))}
-          </div>
+        filtered.map(fig => (
+          <FigureCard
+            key={fig.id}
+            figure={fig}
+            expanded={expandedId === fig.id}
+            onToggle={() => setExpandedId(expandedId === fig.id ? null : fig.id)}
+          />
         ))
       )}
     </div>
