@@ -15,14 +15,19 @@ export default function Benchmark() {
   const [result, setResult] = useState(null)
   const [era, setEra] = useState("")
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleFetch = async () => {
     setLoading(true)
+    setError("")
     try {
       const url = era ? `${API}/benchmark/?era=${era}` : `${API}/benchmark/`
       const res = await axios.get(url)
       if (res.data?.dimension_averages) setResult(res.data)
-    } catch {}
+      else setError("Backend not responding. Start the backend first.")
+    } catch (err) {
+      setError(err.response?.data?.detail || "Backend not responding. Start the backend first.")
+    }
     setLoading(false)
   }
 
@@ -50,6 +55,8 @@ export default function Benchmark() {
           {loading ? "Loading…" : "Apply"}
         </button>
       </div>
+
+      {error && <div style={{ fontSize: 13, color: "#dc2626", padding: "10px 14px", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 6, marginBottom: 16 }}>{error}</div>}
 
       {result && (
         <div>

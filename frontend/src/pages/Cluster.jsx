@@ -41,8 +41,9 @@ export default function Cluster() {
     try {
       const res = await axios.get(`${API}/cluster/`)
       if (res.data?.points) setData(res.data)
+      else setError("Backend not responding. Start the backend first.")
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to load cluster data.")
+      setError(err.response?.data?.detail || "Backend not responding. Start the backend first.")
     }
     setLoading(false)
   }
