@@ -14,11 +14,13 @@ router = APIRouter(prefix="/analyze", tags=["analyze"])
 
 class AnalyzeRequest(BaseModel):
     name: str
+    supplementary_text: str = ""  # optional extra source text
 
 @router.post("/")
 def analyze_person(data: AnalyzeRequest):
     conn = get_connection()
     cursor = conn.cursor()
+    has_supplement = bool(data.supplementary_text.strip())
 
     cursor.execute("""
         SELECT f.id, f.name, p.vector, p.confidence, p.evidence
@@ -28,7 +30,8 @@ def analyze_person(data: AnalyzeRequest):
     """, (data.name,))
     existing = cursor.fetchone()
 
-    if existing:
+    # Return cached only if no supplementary text was provided
+    if existing and not has_supplement:
         profile = {
             "name": existing["name"],
             "vector": json.loads(existing["vector"]),
@@ -38,22 +41,50 @@ def analyze_person(data: AnalyzeRequest):
         matches = find_matches(profile["vector"], top_k=6)
         matches = [m for m in matches if m["name"].lower() != data.name.lower()]
         conn.close()
-        return {"name": data.name, "profile": profile, "matches": matches[:5]}
+        return {"name": data.name, "profile": profile, "matches": matches[:5], "cached": True}
 
-    text = fetch_wikipedia_text(data.name)
-    if not text:
+    # Fetch Wikipedia text
+    wiki_text = fetch_wikipedia_text(data.name) or ""
+
+    # Combine sources
+    parts = []
+    if wiki_text:
+        parts.append(f"=== Wikipedia ===\n{wiki_text}")
+    if has_supplement:
+        parts.append(f"=== Supplementary Source ===\n{data.supplementary_text.strip()}")
+
+    if not parts:
         conn.close()
-        raise HTTPException(status_code=404, detail=f"No Wikipedia page found for '{data.name}'")
+        raise HTTPException(status_code=404, detail=f"No Wikipedia page found for '{data.name}' and no supplementary text provided.")
 
-    profile = extract_profile(data.name, text)
+    combined_text = "\n\n".join(parts)
+    profile = extract_profile(data.name, combined_text)
 
+    if existing and has_supplement:
+        # Re-analyze: update existing profile
+        cursor.execute("""
+            UPDATE profiles SET vector=?, confidence=?, evidence=?
+            WHERE figure_id=?
+        """, (
+            json.dumps(profile["vector"]),
+            json.dumps(profile["confidence"]),
+            json.dumps(profile["evidence"]),
+            existing["id"]
+        ))
+        conn.commit()
+        conn.close()
+        matches = find_matches(profile["vector"], top_k=6)
+        matches = [m for m in matches if m["name"].lower() != data.name.lower()]
+        return {"name": data.name, "profile": profile, "matches": matches[:5], "reanalyzed": True}
+
+    # New figure: insert
+    source = "Wikipedia + Supplementary" if has_supplement else "Wikipedia"
     cursor.execute("""
         INSERT INTO figures (name, era, period, source, raw_text)
         VALUES (?, ?, ?, ?, ?)
-    """, (data.name, 0, "analyzed", "Wikipedia", text))
+    """, (data.name, 0, "analyzed", source, combined_text[:4000]))
 
     figure_id = cursor.lastrowid
-
     cursor.execute("""
         INSERT INTO profiles (figure_id, vector, confidence, evidence)
         VALUES (?, ?, ?, ?)
@@ -69,5 +100,4 @@ def analyze_person(data: AnalyzeRequest):
 
     matches = find_matches(profile["vector"], top_k=6)
     matches = [m for m in matches if m["name"].lower() != data.name.lower()]
-
     return {"name": data.name, "profile": profile, "matches": matches[:5]}

@@ -77,6 +77,8 @@ function FigureCard({ figure, expanded, onToggle }) {
 
 export default function Figures() {
   const [name, setName] = useState("")
+  const [supplement, setSupplement] = useState("")
+  const [showSupplement, setShowSupplement] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState("")
@@ -102,9 +104,14 @@ export default function Figures() {
     setError("")
     setResult(null)
     try {
-      const res = await axios.post(`${API}/analyze/`, { name: name.trim() })
+      const res = await axios.post(`${API}/analyze/`, {
+        name: name.trim(),
+        supplementary_text: supplement.trim()
+      })
       setResult(res.data)
       setName("")
+      setSupplement("")
+      setShowSupplement(false)
       await loadFigures()
     } catch (err) {
       setError(err.response?.data?.detail || "Analysis failed. Check the name is a valid Wikipedia entry.")
@@ -132,7 +139,7 @@ export default function Figures() {
         <input
           value={name}
           onChange={e => setName(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && handleAnalyze()}
+          onKeyDown={e => e.key === "Enter" && !showSupplement && handleAnalyze()}
           placeholder="e.g. Napoleon Bonaparte, Cao Cao, Alan Turing"
           style={{ flex: 1 }}
         />
@@ -141,11 +148,47 @@ export default function Figures() {
         </button>
       </div>
 
+      {/* Supplementary text toggle */}
+      <div style={{ marginTop: 10, marginBottom: 4 }}>
+        <button
+          className="secondary"
+          style={{ fontSize: 12, padding: "4px 10px" }}
+          onClick={() => setShowSupplement(s => !s)}
+        >
+          {showSupplement ? "Hide supplementary source" : "+ Add supplementary source"}
+        </button>
+        {!showSupplement && supplement.trim() && (
+          <span style={{ fontSize: 11, color: "#888", marginLeft: 10 }}>
+            {supplement.trim().length} chars of supplementary text ready
+          </span>
+        )}
+      </div>
+
+      {showSupplement && (
+        <div style={{ marginBottom: 12 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, display: "block" }}>
+            Supplementary source
+          </span>
+          <p style={{ fontSize: 12, color: "#aaa", marginBottom: 8, lineHeight: 1.6 }}>
+            Paste any text — academic paper, book excerpt, primary source, biography passage. The system will combine it with Wikipedia before analysis.
+            If this figure already exists in the database, providing supplementary text will trigger a re-analysis.
+          </p>
+          <textarea
+            value={supplement}
+            onChange={e => setSupplement(e.target.value)}
+            placeholder="Paste additional source text here…"
+            style={{ width: "100%", height: 140, fontSize: 13 }}
+          />
+        </div>
+      )}
+
       {error && <div style={S.err}>{error}</div>}
 
       {result && (
         <div style={S.success}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#111", marginBottom: 8 }}>✓ {result.name} added</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#111", marginBottom: 8 }}>
+            {result.reanalyzed ? "↻" : "✓"} {result.name} {result.reanalyzed ? "re-analysed" : result.cached ? "(cached)" : "added"}
+          </div>
           <DimBars vector={result.profile.vector} confidence={result.profile.confidence} />
         </div>
       )}
