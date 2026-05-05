@@ -66,7 +66,7 @@ export default function Graph() {
           <div style={S.center}>Centre: <strong>{result.center}</strong></div>
 
           <h2 style={{ marginBottom: 16 }}>Connected Figures</h2>
-          {(result.nodes || []).filter(n => n.name !== result.center).map((node, i) => (
+          {(result.nodes || []).filter(n => n.type !== "target").map((node, i) => (
             <div key={i} style={S.nodeCard}>
               <div style={S.nodeRow}>
                 <span style={S.nodeName}>{node.name}</span>
@@ -86,7 +86,7 @@ export default function Graph() {
               <h2 style={{ marginBottom: 16 }}>Strongest Connections</h2>
               {result.edges.slice(0, 10).map((edge, i) => (
                 <div key={i} style={S.edgeCard}>
-                  <span style={S.edgePair}>{edge.source} — {edge.target}</span>
+                  <span style={S.edgePair}>{edge.source_name} — {edge.target_name}</span>
                   <span style={S.edgeScore}>{(edge.weight * 100).toFixed(1)}%</span>
                 </div>
               ))}

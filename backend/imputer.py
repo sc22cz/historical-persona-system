@@ -24,7 +24,7 @@ def impute_profile(figure_id: int, user_vector: list = None) -> dict:
         SELECT f.id, f.name, f.era, p.vector, p.confidence
         FROM figures f
         JOIN profiles p ON f.id = p.figure_id
-        WHERE f.id != ? AND f.era > 1800
+        WHERE f.id != ?
     """, (figure_id,))
 
     modern_figures = cursor.fetchall()

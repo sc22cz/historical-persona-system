@@ -3,6 +3,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import anthropic
+from fastapi import HTTPException
 from services.figure_resolver import resolve_figure
 from imputer import impute_profile
 
@@ -32,15 +33,16 @@ def persona_chat(name: str, message: str) -> dict:
     figure = resolve_figure(name)
 
     if not figure:
-        return {"error": f"Could not find or fetch data for '{name}'"}
+        raise HTTPException(status_code=404, detail=f"Could not find or fetch data for '{name}'")
 
     imputed = impute_profile(figure["id"])
     vector = imputed["imputed_vector"]
 
+    safe_raw_text = figure["raw_text"].replace("{", "{{").replace("}", "}}")
     system_prompt = CHAT_PROMPT.format(
         name=figure["name"],
         era=figure["era"],
-        raw_text=figure["raw_text"],
+        raw_text=safe_raw_text,
         d0=vector[0], d1=vector[1], d2=vector[2],
         d3=vector[3], d4=vector[4], d5=vector[5],
         d6=vector[6], d7=vector[7], d8=vector[8], d9=vector[9]

@@ -52,4 +52,5 @@ export async function clearVectors() {
   const db = await openDB()
   const tx = db.transaction(STORE, "readwrite")
   tx.objectStore(STORE).clear()
+  return new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej })
 }

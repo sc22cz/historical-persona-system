@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import anthropic
 from fastapi import HTTPException
@@ -38,10 +39,8 @@ def match_relic(description: str, material: str) -> dict:
     )
 
     raw = response.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
+    raw = re.sub(r'^```json?\n?', '', raw)
+    raw = re.sub(r'\n?```$', '', raw)
 
     try:
         relic_profile = json.loads(raw.strip())

@@ -60,8 +60,10 @@ export default function Cluster() {
   const minY = Math.min(...ys), maxY = Math.max(...ys)
 
   const W = 680, H = 480, PAD = 32
-  const scaleX = x => PAD + ((x - minX) / (maxX - minX)) * (W - PAD * 2)
-  const scaleY = y => PAD + ((y - minY) / (maxY - minY)) * (H - PAD * 2)
+  const rangeX = maxX - minX || 1
+  const rangeY = maxY - minY || 1
+  const scaleX = x => PAD + ((x - minX) / rangeX) * (W - PAD * 2)
+  const scaleY = y => PAD + ((y - minY) / rangeY) * (H - PAD * 2)
 
   const searchLower = search.toLowerCase()
   const userProfile = (() => {

@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import anthropic
 from fastapi import HTTPException
@@ -41,10 +42,11 @@ def get_figure_locations(figure_id: int) -> dict:
     if not figure:
         return {"error": "Figure not found"}
 
+    safe_raw_text = figure["raw_text"].replace("{", "{{").replace("}", "}}")
     prompt = LOCATIONS_PROMPT.format(
         name=figure["name"],
         era=figure["era"],
-        raw_text=figure["raw_text"]
+        raw_text=safe_raw_text
     )
 
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
@@ -55,10 +57,8 @@ def get_figure_locations(figure_id: int) -> dict:
     )
 
     raw = response.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
+    raw = re.sub(r'^```json?\n?', '', raw)
+    raw = re.sub(r'\n?```$', '', raw)
 
     try:
         result = json.loads(raw.strip())

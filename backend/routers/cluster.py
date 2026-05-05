@@ -32,7 +32,7 @@ def get_cluster():
     vectors = np.array([json.loads(r["vector"]) for r in rows])
 
     perplexity = min(30, len(rows) - 1)
-    tsne = TSNE(n_components=2, perplexity=perplexity, random_state=42, n_iter=1000)
+    tsne = TSNE(n_components=2, perplexity=perplexity, random_state=42, max_iter=1000)
     coords = tsne.fit_transform(vectors)
 
     points = []

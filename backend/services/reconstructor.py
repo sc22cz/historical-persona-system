@@ -74,10 +74,11 @@ def reconstruct_history(figure_id: int, user_vector: list = None) -> dict:
     else:
         era_context = f"the modern period around {figure['era']}, with print culture, nation-states, and industrial change"
 
+    safe_raw_text = figure["raw_text"].replace("{", "{{").replace("}", "}}")
     prompt = RECONSTRUCT_PROMPT.format(
         name=figure["name"],
         era=figure["era"],
-        raw_text=figure["raw_text"],
+        raw_text=safe_raw_text,
         era_context=era_context,
         similar_figure=similar_figure,
         d0=vector[0], d1=vector[1], d2=vector[2],

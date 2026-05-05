@@ -30,24 +30,30 @@ def get_relationship_graph(figure_id: int) -> dict:
 
     target_vector = json.loads(target["vector"])
     
-    nodes = [{"id": target["id"], "name": target["name"], "era": target["era"], "type": "target"}]
+    target_name = target["name"]
+    nodes = [{"id": target["id"], "name": target_name, "era": target["era"], "type": "target"}]
     edges = []
+    id_to_name = {target["id"]: target_name}
 
     for fig in all_figures:
         vector = json.loads(fig["vector"])
         score = cosine_similarity(target_vector, vector)
-        
+
         if score > 0.95:
+            id_to_name[fig["id"]] = fig["name"]
             nodes.append({
                 "id": fig["id"],
                 "name": fig["name"],
                 "era": fig["era"],
                 "period": fig["period"],
-                "type": "related"
+                "type": "related",
+                "similarity": round(score, 4)
             })
             edges.append({
                 "source": target["id"],
                 "target": fig["id"],
+                "source_name": target_name,
+                "target_name": fig["name"],
                 "weight": round(score, 4),
                 "type": "similarity"
             })
@@ -55,7 +61,7 @@ def get_relationship_graph(figure_id: int) -> dict:
     edges.sort(key=lambda x: x["weight"], reverse=True)
 
     return {
-        "figure": target["name"],
+        "center": target_name,
         "nodes": nodes,
         "edges": edges[:10]
     }

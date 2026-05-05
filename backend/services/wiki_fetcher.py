@@ -7,7 +7,6 @@ def fetch_wikipedia_text(name: str) -> str:
         "action": "query",
         "titles": name,
         "prop": "extracts",
-        "exintro": False,
         "explaintext": True,
         "format": "json",
         "redirects": 1

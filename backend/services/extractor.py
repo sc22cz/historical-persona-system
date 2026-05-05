@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import anthropic
 from fastapi import HTTPException
@@ -56,10 +57,8 @@ def extract_profile(name: str, text: str) -> dict:
     )
 
     raw = response.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
+    raw = re.sub(r'^```json?\n?', '', raw)
+    raw = re.sub(r'\n?```$', '', raw)
 
     try:
         result = json.loads(raw.strip())
