@@ -92,7 +92,7 @@ export default function Figures() {
     setLoadingList(true)
     try {
       const res = await axios.get(`${API}/figures/`)
-      setFigures(res.data)
+      setFigures(Array.isArray(res.data) ? res.data : [])
     } catch {}
     setLoadingList(false)
   }

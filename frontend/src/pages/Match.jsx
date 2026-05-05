@@ -56,6 +56,7 @@ export default function Match() {
   const refreshCache = async () => {
     try {
       const res = await axios.get(`${API}/figures/`)
+      if (!Array.isArray(res.data)) return
       await saveVectors(res.data)
       setLocalFigures(res.data)
       setCacheDate(new Date().toLocaleString())
