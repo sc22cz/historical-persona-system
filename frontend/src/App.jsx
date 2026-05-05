@@ -9,6 +9,7 @@ import Locations from "./pages/Locations"
 import Reverse from "./pages/Reverse"
 import Relics from "./pages/Relics"
 import Benchmark from "./pages/Benchmark"
+import Cluster from "./pages/Cluster"
 
 export const API = "http://localhost:8000"
 
@@ -23,6 +24,7 @@ const nav = [
   { path: "/reverse", label: "Reverse" },
   { path: "/relics", label: "Relics" },
   { path: "/benchmark", label: "Benchmark" },
+  { path: "/cluster", label: "Map" },
 ]
 
 const S = {
@@ -71,6 +73,7 @@ export default function App() {
           <Route path="/reverse" element={<Reverse />} />
           <Route path="/relics" element={<Relics />} />
           <Route path="/benchmark" element={<Benchmark />} />
+          <Route path="/cluster" element={<Cluster />} />
         </Routes>
       </div>
     </BrowserRouter>

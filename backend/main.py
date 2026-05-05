@@ -14,6 +14,7 @@ from routers.graph import router as graph_router
 from routers.locations import router as locations_router
 from routers.relics import router as relics_router
 from routers.benchmark import router as benchmark_router
+from routers.cluster import router as cluster_router
 
 
 app = FastAPI(title="Historical Persona System")
@@ -47,3 +48,4 @@ app.include_router(graph_router)
 app.include_router(locations_router)
 app.include_router(relics_router)
 app.include_router(benchmark_router)
+app.include_router(cluster_router)
