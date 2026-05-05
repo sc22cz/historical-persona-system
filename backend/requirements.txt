@@ -25,3 +25,4 @@ urllib3==2.6.3
 uvicorn==0.39.0
 numpy==2.0.2
 scikit-learn==1.6.1
+aiofiles==25.1.0

@@ -1,6 +1,9 @@
 import os
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from database import init_db
 from routers.figures import router as figures_router
 from routers.match import router as match_router
@@ -32,9 +35,25 @@ def startup():
         raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set")
     init_db()
 
-@app.get("/")
-def root():
-    return {"message": "Historical Persona System is running"}
+FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
+
+if FRONTEND_DIST.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+    @app.get("/")
+    def serve_index():
+        return FileResponse(FRONTEND_DIST / "index.html")
+
+    @app.get("/{full_path:path}")
+    def serve_spa(full_path: str):
+        file = FRONTEND_DIST / full_path
+        if file.exists() and file.is_file():
+            return FileResponse(file)
+        return FileResponse(FRONTEND_DIST / "index.html")
+else:
+    @app.get("/")
+    def root():
+        return {"message": "Historical Persona System API is running"}
 
 app.include_router(figures_router)
 app.include_router(match_router)

@@ -11,7 +11,7 @@ import Relics from "./pages/Relics"
 import Benchmark from "./pages/Benchmark"
 import Cluster from "./pages/Cluster"
 
-export const API = "http://localhost:8000"
+export const API = import.meta.env.VITE_API_URL || ""
 
 const NAV_GROUPS = [
   {
