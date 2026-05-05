@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { API } from "../App"
+import { SkeletonList } from "../components/Skeleton"
 
 const DIMS = ["Oppression", "Group", "Principle", "Trust", "Change", "Emotion", "Motivation", "Mission", "Injustice", "Expression"]
 
@@ -47,7 +48,7 @@ function DimBars({ vector, confidence }) {
 function FigureCard({ figure, expanded, onToggle }) {
   const era = figure.era === 0 ? "unknown era" : figure.era < 0 ? `${Math.abs(figure.era)} BC` : `${figure.era} AD`
   return (
-    <div style={S.card}>
+    <div className="card-hover" style={S.card}>
       <div style={S.cardHeader(expanded)} onClick={onToggle}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{figure.name}</span>
@@ -209,7 +210,7 @@ export default function Figures() {
       </div>
 
       {loadingList ? (
-        <p style={{ color: "#aaa", fontSize: 13 }}>Loading…</p>
+        <SkeletonList count={6} />
       ) : figures.length === 0 ? (
         <p style={{ color: "#aaa", fontSize: 13 }}>No figures yet. Analyse someone above to add them.</p>
       ) : filtered.length === 0 ? (

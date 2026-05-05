@@ -59,7 +59,7 @@ export default function Reverse() {
         <div style={{ marginTop: 32 }}>
           <h2 style={{ marginBottom: 16 }}>Similar to {result.query}</h2>
           {result.matches.map((match, i) => (
-            <div key={i} style={S.card}>
+            <div key={i} className={`card-hover fade-up fade-up-delay-${i + 1}`} style={S.card}>
               <div style={S.cardRow}>
                 <span style={S.name}>{match.name}</span>
                 <span style={S.era}>{match.era < 0 ? `${Math.abs(match.era)} BC` : `${match.era} AD`}</span>

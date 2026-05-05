@@ -79,18 +79,30 @@ export default function Predict() {
 
       {error && <div style={S.err}>{error}</div>}
 
+      {loading && (
+        <div style={{ marginTop: 32 }}>
+          <div style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>Channelling historical figures…</div>
+          {[1,2,3].map(i => (
+            <div key={i} style={{ border: "1px solid #e5e5e5", borderRadius: 8, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+              <div className="skeleton" style={{ height: 14, width: "35%", borderRadius: 4 }} />
+              <div className="skeleton" style={{ height: 12, width: "18%", borderRadius: 4 }} />
+            </div>
+          ))}
+        </div>
+      )}
+
       {result && (
         <div style={{ marginTop: 40 }}>
           <h2 style={{ marginBottom: 16 }}>Your Historical Counterparts</h2>
           {result.matches.map((match, i) => (
-            <div key={i} style={S.matchCard}>
+            <div key={i} className={`card-hover fade-up fade-up-delay-${i + 1}`} style={S.matchCard}>
               <span style={S.name}>{match.name}</span>
               <span style={S.score}>{(match.score * 100).toFixed(1)}% similar</span>
             </div>
           ))}
 
           <h2 style={{ marginTop: 32, marginBottom: 12 }}>Their Message to You</h2>
-          <div style={S.prediction}>{result.prediction}</div>
+          <div className="fade-up" style={S.prediction}>{result.prediction}</div>
         </div>
       )}
     </div>

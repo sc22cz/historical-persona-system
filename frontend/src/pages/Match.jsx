@@ -163,7 +163,7 @@ export default function Match() {
 
           <h2 style={{ marginTop: 32, marginBottom: 16 }}>Historical Matches</h2>
           {result.matches.map((m, i) => (
-            <div key={i} style={S.card}>
+            <div key={i} className={`card-hover fade-up fade-up-delay-${i + 1}`} style={S.card}>
               <div style={S.row}>
                 <span style={S.name}>{m.name}</span>
                 <span style={S.era}>{m.era < 0 ? `${Math.abs(m.era)} BC` : `${m.era} AD`}</span>

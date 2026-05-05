@@ -13,13 +13,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-#root {
-  min-height: 100vh;
-}
+#root { min-height: 100vh; }
 
-h1 { font-size: 20px; font-weight: 600; color: #111; letter-spacing: -0.3px; }
-h2 { font-size: 16px; font-weight: 600; color: #111; }
-h3 { font-size: 14px; font-weight: 600; color: #111; }
+h1 { font-size: 22px; font-weight: 700; color: #111; letter-spacing: -0.5px; }
+h2 { font-size: 15px; font-weight: 600; color: #111; letter-spacing: -0.2px; }
+h3 { font-size: 13px; font-weight: 600; color: #111; }
 p  { color: #555; }
 
 input, textarea, select {
@@ -31,12 +29,15 @@ input, textarea, select {
   border-radius: 6px;
   padding: 10px 12px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
 }
 input:focus, textarea:focus, select:focus {
   border-color: #111;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
 }
 textarea { resize: vertical; }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
 
 button {
   font-family: inherit;
@@ -46,11 +47,89 @@ button {
   border: none;
   border-radius: 6px;
   padding: 10px 20px;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, background 0.15s, transform 0.1s;
+  white-space: nowrap;
 }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
+button:active:not(:disabled) { transform: scale(0.98); }
 
 button.primary { background: #111; color: #fff; }
-button.primary:hover:not(:disabled) { opacity: 0.85; }
+button.primary:hover:not(:disabled) { opacity: 0.82; }
 button.secondary { background: #fff; color: #111; border: 1px solid #e5e5e5; }
-button.secondary:hover:not(:disabled) { background: #f8f8f8; }
+button.secondary:hover:not(:disabled) { background: #f5f5f5; border-color: #ccc; }
+
+/* Card hover */
+.card-hover {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.card-hover:hover {
+  border-color: #ccc !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* Fade-in animation for results */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fadeUp 0.25s ease forwards;
+}
+.fade-up-delay-1 { animation-delay: 0.05s; opacity: 0; }
+.fade-up-delay-2 { animation-delay: 0.10s; opacity: 0; }
+.fade-up-delay-3 { animation-delay: 0.15s; opacity: 0; }
+.fade-up-delay-4 { animation-delay: 0.20s; opacity: 0; }
+.fade-up-delay-5 { animation-delay: 0.25s; opacity: 0; }
+
+/* Skeleton loading */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 4px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #ccc; }
+
+/* Range input */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #e5e5e5;
+  border-radius: 2px;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  width: 100%;
+}
+input[type=range]:focus { box-shadow: none; border: none; }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #111;
+  cursor: pointer;
+  border: none;
+}
+input[type=range]::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #111;
+  cursor: pointer;
+  border: none;
+}
+
+/* Details/summary */
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: "+ "; color: #aaa; }
+details[open] > summary::before { content: "− "; }
