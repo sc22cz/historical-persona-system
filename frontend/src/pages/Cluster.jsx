@@ -40,7 +40,7 @@ export default function Cluster() {
     setError("")
     try {
       const res = await axios.get(`${API}/cluster/`)
-      setData(res.data)
+      if (res.data?.points) setData(res.data)
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to load cluster data.")
     }

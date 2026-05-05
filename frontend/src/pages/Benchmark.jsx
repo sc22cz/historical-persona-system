@@ -21,7 +21,7 @@ export default function Benchmark() {
     try {
       const url = era ? `${API}/benchmark/?era=${era}` : `${API}/benchmark/`
       const res = await axios.get(url)
-      setResult(res.data)
+      if (res.data?.dimension_averages) setResult(res.data)
     } catch {}
     setLoading(false)
   }
