@@ -89,9 +89,13 @@ npm start
 
 Open `http://localhost:5173` in your browser.
 
-### Bulk Import
+### Database
 
-To populate the database with historical figures:
+The repository includes a pre-populated SQLite database (`backend/data/historical.db`) with 473 historical figures already extracted and ready to use. **You do not need to run bulk_import.py** unless you want to add more figures.
+
+### Bulk Import (optional)
+
+To add more historical figures to the database:
 ```bash
 source venv/bin/activate
 cd backend
