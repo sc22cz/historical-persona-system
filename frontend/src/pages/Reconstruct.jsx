@@ -129,7 +129,7 @@ export default function Reconstruct() {
           <div style={S.profileBadge}>
             <span>Using your saved behavioural profile from Match</span>
             <button className="secondary" style={{ fontSize: 11, padding: "3px 9px" }}
-              onClick={() => setSavedProfile(null)}>
+              onClick={() => { setSavedProfile(null); localStorage.removeItem("hps_profile") }}>
               Remove
             </button>
           </div>

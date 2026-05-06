@@ -2,41 +2,76 @@ import { useState, useEffect } from "react"
 import axios from "axios"
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts"
 import { API } from "../App"
+import { loadVectors, saveVectors } from "../services/vectorStore"
+
+const DIMS = [
+  "reaction_to_oppression", "group_dependency", "principle_vs_interest",
+  "interpersonal_trust", "change_orientation", "emotional_stability",
+  "core_motivation", "historical_mission", "response_to_injustice", "expression_style",
+]
+
+function computeBenchmark(figures) {
+  if (!figures.length) return null
+  const sums = new Array(10).fill(0)
+  for (const fig of figures) fig.vector.forEach((v, i) => { sums[i] += v })
+  const dimension_averages = {}
+  DIMS.forEach((d, i) => { dimension_averages[d] = Math.round(sums[i] / figures.length * 1000) / 1000 })
+  return {
+    total_figures: figures.length,
+    dimension_averages,
+    insights: {
+      high_mission_driven:  figures.filter(f => f.vector[7] > 0.7).length,
+      high_change_oriented: figures.filter(f => f.vector[4] > 0.7).length,
+      lone_wolves:          figures.filter(f => f.vector[1] < 0.3).length,
+    },
+  }
+}
+
+async function getFigures() {
+  const cached = await loadVectors()
+  if (cached.length > 0) return cached
+  const res = await axios.get(`${API}/figures/`)
+  if (Array.isArray(res.data) && res.data.length > 0) {
+    await saveVectors(res.data)
+    return res.data
+  }
+  return []
+}
 
 const S = {
-  desc: { fontSize: 13, color: "#888", marginBottom: 20, lineHeight: 1.7 },
-  row: { display: "flex", gap: 10, marginBottom: 24 },
-  stat: { flex: 1, padding: 16, border: "1px solid #e5e5e5", borderRadius: 8, textAlign: "center" },
-  statNum: { fontSize: 28, fontWeight: 600, color: "#111" },
-  statLabel: { fontSize: 12, color: "#888", marginTop: 4 },
+  desc: { fontSize: 13, color: "var(--text3)", marginBottom: 20, lineHeight: 1.7 },
+  row:  { display: "flex", gap: 10, marginBottom: 24 },
+  stat: { flex: 1, padding: 16, border: "1px solid var(--border)", borderRadius: 8, textAlign: "center", background: "var(--bg2)" },
+  statNum:   { fontSize: 28, fontWeight: 600, color: "var(--text)" },
+  statLabel: { fontSize: 12, color: "var(--text3)", marginTop: 4 },
+  err: { fontSize: 13, color: "#dc2626", padding: "10px 14px", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 6, marginBottom: 16 },
 }
 
 export default function Benchmark() {
-  const [result, setResult] = useState(null)
-  const [era, setEra] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [allFigures, setAllFigures] = useState([])
+  const [era, setEra]         = useState("")
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState("")
 
-  const handleFetch = async () => {
-    setLoading(true)
-    setError("")
-    try {
-      const url = era ? `${API}/benchmark/?era=${era}` : `${API}/benchmark/`
-      const res = await axios.get(url)
-      if (res.data?.dimension_averages) setResult(res.data)
-      else setError("Backend not responding. Start the backend first.")
-    } catch (err) {
-      setError(err.response?.data?.detail || "Backend not responding. Start the backend first.")
-    }
-    setLoading(false)
-  }
+  useEffect(() => {
+    getFigures()
+      .then(figs => { if (Array.isArray(figs)) setAllFigures(figs) })
+      .catch(() => setError("Could not load figures. Make sure the backend is running and go to Match to cache figures."))
+      .finally(() => setLoading(false))
+  }, [])
 
-  useEffect(() => { handleFetch() }, [])
+  const filtered = era === "ancient"
+    ? allFigures.filter(f => f.era < 1800)
+    : era === "modern"
+    ? allFigures.filter(f => f.era >= 1800)
+    : allFigures
+
+  const result = computeBenchmark(filtered)
 
   const radarData = result
     ? Object.entries(result.dimension_averages).map(([key, val]) => ({
         dimension: key.replace(/_/g, " "),
-        value: val || 0,
+        value: val,
       }))
     : []
 
@@ -45,30 +80,36 @@ export default function Benchmark() {
       <h2 style={{ marginBottom: 6 }}>Behavioural Benchmark</h2>
       <p style={S.desc}>Global distribution of behavioural patterns across all historical figures in the database.</p>
 
+      {error && <div style={S.err}>{error}</div>}
+
       <div style={S.row}>
         <select value={era} onChange={e => setEra(e.target.value)} style={{ flex: 1 }}>
-          <option value="">All eras</option>
-          <option value="ancient">Ancient (before 1800)</option>
-          <option value="modern">Modern (after 1800)</option>
+          <option value="">All eras ({allFigures.length} figures)</option>
+          <option value="ancient">Ancient · before 1800 ({allFigures.filter(f => f.era < 1800).length})</option>
+          <option value="modern">Modern · after 1800 ({allFigures.filter(f => f.era >= 1800).length})</option>
         </select>
-        <button className="primary" onClick={handleFetch} disabled={loading}>
-          {loading ? "Loading…" : "Apply"}
-        </button>
       </div>
 
-      {error && <div style={{ fontSize: 13, color: "#dc2626", padding: "10px 14px", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 6, marginBottom: 16 }}>{error}</div>}
-
-      {result && (
+      {loading && (
         <div>
-          <p style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
+          <div className="skeleton" style={{ height: 320, borderRadius: 8, marginBottom: 24 }} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 8 }} />)}
+          </div>
+        </div>
+      )}
+
+      {!loading && result && (
+        <div>
+          <p style={{ fontSize: 13, color: "var(--text3)", marginBottom: 20 }}>
             {result.total_figures} figures analysed
           </p>
 
           <ResponsiveContainer width="100%" height={320}>
             <RadarChart data={radarData}>
-              <PolarGrid stroke="#e5e5e5" />
-              <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: "#888" }} />
-              <Radar dataKey="value" stroke="#111" fill="#111" fillOpacity={0.12} strokeWidth={1.5} />
+              <PolarGrid stroke="var(--border)" />
+              <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 11, fill: "var(--text3)" }} />
+              <Radar dataKey="value" stroke="var(--text)" fill="var(--text)" fillOpacity={0.12} strokeWidth={1.5} />
             </RadarChart>
           </ResponsiveContainer>
 
@@ -88,6 +129,10 @@ export default function Benchmark() {
             </div>
           </div>
         </div>
+      )}
+
+      {!loading && !result && !error && (
+        <p style={{ color: "var(--text4)", fontSize: 13 }}>No figures loaded yet. Go to Match to cache figures.</p>
       )}
     </div>
   )

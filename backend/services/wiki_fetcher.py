@@ -18,11 +18,14 @@ def fetch_wikipedia_text(name: str) -> str:
     if response.status_code != 200:
         return None
     
-    data = response.json()
-    pages = data["query"]["pages"]
-    page = next(iter(pages.values()))
-    
+    try:
+        data = response.json()
+        pages = data["query"]["pages"]
+        page = next(iter(pages.values()))
+    except (KeyError, StopIteration, ValueError):
+        return None
+
     if "extract" not in page:
         return None
-    
+
     return page["extract"][:5000]

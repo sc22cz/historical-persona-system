@@ -1,7 +1,10 @@
+import os
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent / "data" / "historical.db"
+_env_path = os.environ.get("DATABASE_PATH")
+DB_PATH = Path(_env_path) if _env_path else Path(__file__).parent / "data" / "historical.db"
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH, timeout=30)

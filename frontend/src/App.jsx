@@ -17,7 +17,7 @@ export const API = import.meta.env.VITE_API_URL || ""
 const NAV_GROUPS = [
   {
     label: null,
-    items: [{ path: "/figures", label: "Search data" }],
+    items: [{ path: "/figures", label: "Database" }],
   },
   {
     label: "Find ME",

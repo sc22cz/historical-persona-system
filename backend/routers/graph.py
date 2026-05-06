@@ -17,4 +17,7 @@ def graph(data: GraphRequest):
     figure = resolve_figure(data.name)
     if not figure:
         raise HTTPException(status_code=404, detail=f"Figure '{data.name}' not found")
-    return get_relationship_graph(figure["id"])
+    result = get_relationship_graph(figure["id"])
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result

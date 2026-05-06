@@ -42,7 +42,7 @@ def get_figure_locations(figure_id: int) -> dict:
     if not figure:
         return {"error": "Figure not found"}
 
-    safe_raw_text = figure["raw_text"].replace("{", "{{").replace("}", "}}")
+    safe_raw_text = (figure["raw_text"] or "").replace("{", "{{").replace("}", "}}")
     prompt = LOCATIONS_PROMPT.format(
         name=figure["name"],
         era=figure["era"],

@@ -35,6 +35,20 @@ def startup():
         raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set")
     init_db()
 
+app.include_router(figures_router)
+app.include_router(match_router)
+app.include_router(reverse_router)
+app.include_router(impute_router)
+app.include_router(reconstruct_router)
+app.include_router(analyze_router)
+app.include_router(predict_router)
+app.include_router(chat_router)
+app.include_router(graph_router)
+app.include_router(locations_router)
+app.include_router(relics_router)
+app.include_router(benchmark_router)
+app.include_router(cluster_router)
+
 FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
 
 if FRONTEND_DIST.exists():
@@ -54,17 +68,3 @@ else:
     @app.get("/")
     def root():
         return {"message": "Historical Persona System API is running"}
-
-app.include_router(figures_router)
-app.include_router(match_router)
-app.include_router(reverse_router)
-app.include_router(impute_router)
-app.include_router(reconstruct_router)
-app.include_router(analyze_router)
-app.include_router(predict_router)
-app.include_router(chat_router)
-app.include_router(graph_router)
-app.include_router(locations_router)
-app.include_router(relics_router)
-app.include_router(benchmark_router)
-app.include_router(cluster_router)

@@ -36,9 +36,11 @@ def persona_chat(name: str, message: str) -> dict:
         raise HTTPException(status_code=404, detail=f"Could not find or fetch data for '{name}'")
 
     imputed = impute_profile(figure["id"])
+    if "error" in imputed:
+        raise HTTPException(status_code=500, detail=f"Could not build profile for '{name}'")
     vector = imputed["imputed_vector"]
 
-    safe_raw_text = figure["raw_text"].replace("{", "{{").replace("}", "}}")
+    safe_raw_text = (figure["raw_text"] or "").replace("{", "{{").replace("}", "}}")
     system_prompt = CHAT_PROMPT.format(
         name=figure["name"],
         era=figure["era"],

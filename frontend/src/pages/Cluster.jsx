@@ -1,14 +1,11 @@
 import { useState, useEffect, useRef } from "react"
 import axios from "axios"
 import { API } from "../App"
+import { loadVectors, saveVectors } from "../services/vectorStore"
 
 const PERIOD_COLORS = {
-  "Ancient": "#111",
-  "Medieval": "#555",
-  "Early Modern": "#888",
-  "Modern": "#aaa",
-  "Contemporary": "#ccc",
-  "": "#bbb",
+  "Ancient": "#111", "Medieval": "#555", "Early Modern": "#888",
+  "Modern": "#aaa", "Contemporary": "#ccc", "": "#bbb",
 }
 
 function getColor(period) {
@@ -18,129 +15,183 @@ function getColor(period) {
   return "#888"
 }
 
+function pca2d(vectors) {
+  const n = vectors.length
+  const d = vectors[0].length
+
+  const mean = new Array(d).fill(0)
+  for (const v of vectors) v.forEach((x, j) => { mean[j] += x / n })
+  const X = vectors.map(v => v.map((x, j) => x - mean[j]))
+
+  const cov = Array.from({ length: d }, (_, i) =>
+    Array.from({ length: d }, (_, j) =>
+      X.reduce((s, row) => s + row[i] * row[j], 0) / (n - 1)
+    )
+  )
+
+  function powerIter(mat, steps = 200) {
+    let v = new Array(d).fill(0).map((_, i) => i === 0 ? 1 : (Math.random() - 0.5) * 0.01)
+    for (let s = 0; s < steps; s++) {
+      const mv = mat.map(row => row.reduce((s, x, j) => s + x * v[j], 0))
+      const norm = Math.sqrt(mv.reduce((s, x) => s + x * x, 0)) || 1
+      v = mv.map(x => x / norm)
+    }
+    return v
+  }
+
+  const pc1 = powerIter(cov)
+  const lambda1 = pc1.reduce((s, x, i) => s + x * cov[i].reduce((t, y, j) => t + y * pc1[j], 0), 0)
+  const deflated = cov.map((row, i) =>
+    row.map((x, j) => x - lambda1 * pc1[i] * pc1[j])
+  )
+  const pc2 = powerIter(deflated)
+
+  return X.map(row => [
+    row.reduce((s, x, j) => s + x * pc1[j], 0),
+    row.reduce((s, x, j) => s + x * pc2[j], 0),
+  ])
+}
+
+async function getFigures() {
+  const cached = await loadVectors()
+  if (cached.length > 0) return cached
+  const res = await axios.get(`${API}/figures/`)
+  if (Array.isArray(res.data) && res.data.length > 0) {
+    await saveVectors(res.data)
+    return res.data
+  }
+  return []
+}
+
 const S = {
-  desc: { fontSize: 13, color: "#888", marginBottom: 20, lineHeight: 1.7 },
-  legend: { display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 20 },
-  legendItem: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555" },
-  dot: (color) => ({ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }),
-  tooltip: { position: "fixed", background: "#111", color: "#fff", padding: "6px 10px", borderRadius: 6, fontSize: 12, pointerEvents: "none", zIndex: 100, whiteSpace: "nowrap" },
-  controls: { display: "flex", gap: 10, marginBottom: 16, alignItems: "center" },
+  desc:       { fontSize: 13, color: "var(--text3)", marginBottom: 20, lineHeight: 1.7 },
+  legend:     { display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 20 },
+  legendItem: { display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text2)" },
+  dot:        (color) => ({ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }),
+  tooltip:    { position: "fixed", background: "var(--text)", color: "var(--primary-inv)", padding: "6px 10px", borderRadius: 6, fontSize: 12, pointerEvents: "none", zIndex: 100, whiteSpace: "nowrap" },
+  controls:   { display: "flex", gap: 10, marginBottom: 16, alignItems: "center" },
 }
 
 export default function Cluster() {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [figures, setFigures] = useState([])
+  const [coords,  setCoords]  = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState("")
   const [tooltip, setTooltip] = useState(null)
-  const [search, setSearch] = useState("")
+  const [search,  setSearch]  = useState("")
   const [selected, setSelected] = useState(null)
 
-  const fetchCluster = async () => {
-    setLoading(true)
-    setError("")
-    try {
-      const res = await axios.get(`${API}/cluster/`)
-      if (res.data?.points) setData(res.data)
-      else setError("Backend not responding. Start the backend first.")
-    } catch (err) {
-      setError(err.response?.data?.detail || "Backend not responding. Start the backend first.")
-    }
-    setLoading(false)
+  useEffect(() => {
+    getFigures()
+      .then(figs => {
+        if (!Array.isArray(figs) || figs.length < 3) {
+          setError("Not enough figures. Go to Search data to add figures, or go to Match to cache them.")
+          return
+        }
+        const vectors = figs.map(f => f.vector)
+        const pts = pca2d(vectors)
+        setFigures(figs)
+        setCoords(pts)
+      })
+      .catch(() => setError("Could not load figures. Make sure the backend is running."))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const recompute = () => {
+    if (!figures.length) return
+    setCoords(pca2d(figures.map(f => f.vector)))
   }
 
-  useEffect(() => { fetchCluster() }, [])
-
-  if (loading) return <div><h2 style={{ marginBottom: 16 }}>Behavioural Map</h2><p style={S.desc}>Running T-SNE on {`all figures`}… this takes ~10 seconds.</p></div>
-  if (error) return <div><h2 style={{ marginBottom: 16 }}>Behavioural Map</h2><div style={{ color: "#dc2626", fontSize: 13 }}>{error}</div></div>
-  if (!data) return null
-
-  const points = data.points
-  const xs = points.map(p => p.x)
-  const ys = points.map(p => p.y)
+  const W = 680, H = 480, PAD = 32
+  const xs = coords.map(p => p[0])
+  const ys = coords.map(p => p[1])
   const minX = Math.min(...xs), maxX = Math.max(...xs)
   const minY = Math.min(...ys), maxY = Math.max(...ys)
-
-  const W = 680, H = 480, PAD = 32
   const rangeX = maxX - minX || 1
   const rangeY = maxY - minY || 1
   const scaleX = x => PAD + ((x - minX) / rangeX) * (W - PAD * 2)
   const scaleY = y => PAD + ((y - minY) / rangeY) * (H - PAD * 2)
 
   const searchLower = search.toLowerCase()
-  const userProfile = (() => {
-    try { return JSON.parse(localStorage.getItem("hps_profile")) } catch { return null }
-  })()
 
   return (
     <div>
       <h2 style={{ marginBottom: 6 }}>Behavioural Map</h2>
       <p style={S.desc}>
-        {data.total} figures projected to 2D using T-SNE. Proximity = behavioural similarity. Each dot is a historical figure.
+        {figures.length > 0
+          ? `${figures.length} figures projected to 2D using PCA. Proximity = behavioural similarity.`
+          : "Figures projected to 2D. Proximity = behavioural similarity."}
       </p>
 
-      <div style={S.legend}>
-        {Object.entries(PERIOD_COLORS).filter(([k]) => k).map(([period, color]) => (
-          <div key={period} style={S.legendItem}>
-            <div style={S.dot(color)} />
-            {period}
+      {error && <div style={{ fontSize: 13, color: "#dc2626", padding: "10px 14px", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 6, marginBottom: 16 }}>{error}</div>}
+
+      {loading && (
+        <div className="skeleton" style={{ height: 480, borderRadius: 8 }} />
+      )}
+
+      {!loading && coords.length > 0 && (
+        <>
+          <div style={S.legend}>
+            {Object.entries(PERIOD_COLORS).filter(([k]) => k).map(([period, color]) => (
+              <div key={period} style={S.legendItem}>
+                <div style={S.dot(color)} />{period}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div style={S.controls}>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Highlight a figure…"
-          style={{ width: 200, padding: "6px 12px", fontSize: 13 }}
-        />
-        <button className="secondary" style={{ fontSize: 12, padding: "6px 12px" }} onClick={fetchCluster}>
-          Recompute
-        </button>
-      </div>
+          <div style={S.controls}>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Highlight a figure…"
+              style={{ width: 200, padding: "6px 12px", fontSize: 13 }}
+            />
+            <button className="secondary" style={{ fontSize: 12, padding: "6px 12px" }} onClick={recompute}>
+              Recompute
+            </button>
+          </div>
 
-      <div style={{ border: "1px solid #e5e5e5", borderRadius: 8, overflow: "hidden", background: "#fafafa" }}>
-        <svg width={W} height={H} style={{ display: "block" }}>
-          {points.map(p => {
-            const x = scaleX(p.x), y = scaleY(p.y)
-            const color = getColor(p.period)
-            const highlighted = search && p.name.toLowerCase().includes(searchLower)
-            const isSelected = selected?.id === p.id
-            return (
-              <g key={p.id}>
-                <circle
-                  cx={x} cy={y}
-                  r={highlighted || isSelected ? 7 : 4}
-                  fill={highlighted || isSelected ? "#111" : color}
-                  fillOpacity={highlighted || isSelected ? 1 : 0.7}
-                  stroke={isSelected ? "#111" : "none"}
-                  strokeWidth={2}
-                  style={{ cursor: "pointer" }}
-                  onMouseEnter={e => setTooltip({ x: e.clientX + 12, y: e.clientY - 8, name: p.name, era: p.era, period: p.period })}
-                  onMouseLeave={() => setTooltip(null)}
-                  onClick={() => setSelected(isSelected ? null : p)}
-                />
-                {highlighted && (
-                  <text x={x + 8} y={y + 4} fontSize={10} fill="#111" fontWeight={600}>{p.name}</text>
-                )}
-              </g>
-            )
-          })}
+          <div style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", background: "var(--bg2)" }}>
+            <svg width={W} height={H} style={{ display: "block" }}>
+              {figures.map((fig, i) => {
+                const x = scaleX(coords[i][0])
+                const y = scaleY(coords[i][1])
+                const color = getColor(fig.period)
+                const highlighted = search && fig.name.toLowerCase().includes(searchLower)
+                const isSelected = selected?.id === fig.id
+                return (
+                  <g key={fig.id}>
+                    <circle
+                      cx={x} cy={y}
+                      r={highlighted || isSelected ? 7 : 4}
+                      fill={highlighted || isSelected ? "var(--text)" : color}
+                      fillOpacity={highlighted || isSelected ? 1 : 0.7}
+                      stroke={isSelected ? "var(--text)" : "none"}
+                      strokeWidth={2}
+                      style={{ cursor: "pointer" }}
+                      onMouseEnter={e => setTooltip({ x: e.clientX + 12, y: e.clientY - 8, name: fig.name, era: fig.era, period: fig.period })}
+                      onMouseLeave={() => setTooltip(null)}
+                      onClick={() => setSelected(isSelected ? null : fig)}
+                    />
+                    {highlighted && (
+                      <text x={x + 8} y={y + 4} fontSize={10} fill="var(--text)" fontWeight={600}>{fig.name}</text>
+                    )}
+                  </g>
+                )
+              })}
+            </svg>
+          </div>
 
-          {userProfile && (() => {
-            return null
-          })()}
-        </svg>
-      </div>
-
-      {selected && (
-        <div style={{ marginTop: 12, padding: "10px 16px", border: "1px solid #e5e5e5", borderRadius: 8, fontSize: 13 }}>
-          <strong>{selected.name}</strong>
-          <span style={{ color: "#888", marginLeft: 10 }}>
-            {selected.era < 0 ? `${Math.abs(selected.era)} BC` : `${selected.era} AD`}
-          </span>
-          {selected.period && <span style={{ color: "#aaa", marginLeft: 8 }}>{selected.period}</span>}
-        </div>
+          {selected && (
+            <div style={{ marginTop: 12, padding: "10px 16px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13, background: "var(--bg2)" }}>
+              <strong style={{ color: "var(--text)" }}>{selected.name}</strong>
+              <span style={{ color: "var(--text3)", marginLeft: 10 }}>
+                {selected.era < 0 ? `${Math.abs(selected.era)} BC` : `${selected.era} AD`}
+              </span>
+              {selected.period && <span style={{ color: "var(--text4)", marginLeft: 8 }}>{selected.period}</span>}
+            </div>
+          )}
+        </>
       )}
 
       {tooltip && (

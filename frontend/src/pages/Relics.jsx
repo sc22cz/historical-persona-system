@@ -66,7 +66,7 @@ export default function Relics() {
       {result && (
         <div style={{ marginTop: 32 }}>
           <h2 style={{ marginBottom: 12 }}>Relic Analysis</h2>
-          <div style={S.reasoning}>{result.relic_profile.reasoning}</div>
+          <div style={S.reasoning}>{result.relic_profile?.reasoning}</div>
 
           <h2 style={{ marginBottom: 16 }}>Closest Historical Matches</h2>
           {result.matches.map((match, i) => (
