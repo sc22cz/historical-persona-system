@@ -2,7 +2,7 @@ import json
 import requests
 
 API_URL = "http://127.0.0.1:8000/figures/"
-API_KEY = "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"
+API_KEY = ""  # set ANTHROPIC_API_KEY env var instead
 
 FIGURES = [
     {
